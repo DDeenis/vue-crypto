@@ -35,6 +35,7 @@
             <div class="mt-1 relative rounded-md shadow-md">
               <input
                 v-model="ticker"
+                @keydown.enter="addTicker"
                 type="text"
                 name="wallet"
                 id="wallet"
@@ -173,7 +174,8 @@
           <div
             v-for="t in tickers"
             :key="t.name"
-            @click="selectedTiker = t"
+            @click="selectTicker(t)"
+            :class="{ 'border-4': selectedTiker?.name === t.name }"
             class="
               bg-white
               overflow-hidden
@@ -194,7 +196,7 @@
             </div>
             <div class="w-full border-t border-gray-200"></div>
             <button
-              @click="removeTicker(t)"
+              @click.stop="removeTicker(t)"
               class="
                 flex
                 items-center
@@ -232,13 +234,15 @@
       </template>
       <section v-if="selectedTiker" class="relative">
         <h3 class="text-lg leading-6 font-medium text-gray-900 my-8">
-          VUE - USD
+          {{ selectedTiker?.name }} - USD
         </h3>
         <div class="flex items-end border-gray-600 border-b border-l h-64">
-          <div class="bg-purple-800 border w-10 h-24"></div>
-          <div class="bg-purple-800 border w-10 h-32"></div>
-          <div class="bg-purple-800 border w-10 h-48"></div>
-          <div class="bg-purple-800 border w-10 h-16"></div>
+          <div
+            v-for="(price, i) in normalizedGraph"
+            :key="i"
+            :style="{ height: `${price}%` }"
+            class="bg-purple-800 border w-[100%] max-w-[2.5rem] h-24"
+          ></div>
         </div>
         <button
           type="button"
@@ -273,24 +277,31 @@
 </template>
 
 <script lang="ts">
+import { defineComponent } from "vue";
 import type { Ticker } from "./types/ticker";
+import { fetchPrice } from "./utils/cryptoApi";
 
-export default {
+export default defineComponent({
   name: "App",
   data() {
     return {
       ticker: "",
       tickers: [] as Ticker[],
-      selectedTiker: null,
+      selectedTiker: null as Ticker | null,
       isError: false,
+      graph: [] as number[],
     };
   },
   methods: {
     addTicker() {
       const newTicker: Ticker = {
         name: this.ticker,
-        price: 0,
+        price: "-",
       };
+
+      if (!this.ticker) {
+        return;
+      }
 
       if (this.tickers.find((t) => t.name === newTicker.name)) {
         this.isError = true;
@@ -299,10 +310,48 @@ export default {
 
       this.isError = false;
       this.tickers.push(newTicker);
+      this.ticker = "";
+
+      setInterval(async () => {
+        const price = await fetchPrice(newTicker.name);
+        const currentTicker = this.tickers.find(
+          (t) => t.name === newTicker.name
+        );
+
+        if (currentTicker) {
+          const currencyPrice =
+            price.USD > 0 ? price.USD.toFixed(2) : price.USD.toPrecision(2);
+          currentTicker.price = currencyPrice;
+        }
+
+        if (currentTicker?.name === this.selectedTiker?.name) {
+          this.graph.push(price.USD);
+        }
+      }, 3000);
     },
-    removeTicker(tiker: Ticker) {
-      this.tickers = this.tickers.filter((t) => t.name !== tiker.name);
+
+    removeTicker(ticker: Ticker) {
+      this.tickers = this.tickers.filter((t) => t.name !== ticker.name);
+
+      if (ticker.name === this.selectedTiker?.name) {
+        this.selectedTiker = null;
+        this.graph = [];
+      }
+    },
+
+    selectTicker(ticker: Ticker) {
+      this.selectedTiker = ticker;
+      this.graph = [];
     },
   },
-};
+  computed: {
+    normalizedGraph() {
+      const min = Math.min(...this.graph);
+      const max = Math.max(...this.graph);
+
+      // @ts-ignore
+      return this.graph.map((p) => 5 + ((p - min) * 95) / (max - min));
+    },
+  },
+});
 </script>

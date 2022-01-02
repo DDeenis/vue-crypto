@@ -1,4 +1,4 @@
 export interface Ticker {
   name: string;
-  price: number;
+  price: number | string;
 }
