@@ -241,7 +241,7 @@
             v-for="(price, i) in normalizedGraph"
             :key="i"
             :style="{ height: `${price}%` }"
-            class="bg-purple-800 border w-[100%] max-w-[2.5rem] h-24"
+            class="bg-purple-800 border w-[100%] max-w-[2.5rem]"
           ></div>
         </div>
         <button
@@ -277,7 +277,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent } from "vue";
+import { defineComponent, reactive } from "vue";
 import type { Ticker } from "./types/ticker";
 import { fetchPrice } from "./utils/cryptoApi";
 
@@ -294,35 +294,29 @@ export default defineComponent({
   },
   methods: {
     addTicker() {
-      const newTicker: Ticker = {
+      const currentTicker: Ticker = reactive({
         name: this.ticker,
         price: "-",
-      };
+      });
 
       if (!this.ticker) {
         return;
       }
 
-      if (this.tickers.find((t) => t.name === newTicker.name)) {
+      if (this.tickers.find((t) => t.name === currentTicker.name)) {
         this.isError = true;
         return;
       }
 
       this.isError = false;
-      this.tickers.push(newTicker);
+      this.tickers.push(currentTicker);
       this.ticker = "";
 
       setInterval(async () => {
-        const price = await fetchPrice(newTicker.name);
-        const currentTicker = this.tickers.find(
-          (t) => t.name === newTicker.name
-        );
-
-        if (currentTicker) {
-          const currencyPrice =
-            price.USD > 0 ? price.USD.toFixed(2) : price.USD.toPrecision(2);
-          currentTicker.price = currencyPrice;
-        }
+        const price = await fetchPrice(currentTicker.name);
+        const currencyPrice =
+          price.USD > 0 ? price.USD.toFixed(2) : price.USD.toPrecision(2);
+        currentTicker.price = currencyPrice;
 
         if (currentTicker?.name === this.selectedTiker?.name) {
           this.graph.push(price.USD);
