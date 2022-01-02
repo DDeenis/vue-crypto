@@ -172,7 +172,8 @@
         <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
           <div
             v-for="t in tickers"
-            :key="t.id"
+            :key="t.name"
+            @click="selectedTiker = t"
             class="
               bg-white
               overflow-hidden
@@ -239,7 +240,11 @@
           <div class="bg-purple-800 border w-10 h-48"></div>
           <div class="bg-purple-800 border w-10 h-16"></div>
         </div>
-        <button type="button" class="absolute top-0 right-0">
+        <button
+          type="button"
+          class="absolute top-0 right-0"
+          @click="selectedTiker = null"
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -267,29 +272,24 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
+import type { Ticker } from "./types/ticker";
+
 export default {
   name: "App",
   data() {
     return {
       ticker: "",
-      tickers: [],
+      tickers: [] as Ticker[],
       selectedTiker: null,
       isError: false,
     };
   },
   methods: {
-    getId: function* () {
-      let nextId = 1;
-      while (true) {
-        yield nextId++;
-      }
-    },
     addTicker() {
-      const newTicker = {
+      const newTicker: Ticker = {
         name: this.ticker,
-        price: "0",
-        id: this.getId(),
+        price: 0,
       };
 
       if (this.tickers.find((t) => t.name === newTicker.name)) {
@@ -300,11 +300,9 @@ export default {
       this.isError = false;
       this.tickers.push(newTicker);
     },
-    removeTicker(tiker) {
-      this.tickers = this.tickers.filter((t) => t.id !== tiker.id);
+    removeTicker(tiker: Ticker) {
+      this.tickers = this.tickers.filter((t) => t.name !== tiker.name);
     },
   },
 };
 </script>
-
-<!-- <style src="./app.css"></style> -->
