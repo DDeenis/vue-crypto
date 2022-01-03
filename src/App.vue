@@ -171,7 +171,15 @@
       <template v-if="tickers.length">
         <hr class="w-full border-t border-gray-500 my-4" />
         <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
-          <div
+          <ticker
+            v-for="t in tickers"
+            :key="t.name"
+            :ticker="t"
+            :isSelected="selectedTiker?.name === t.name"
+            @select="selectTicker"
+            @remove="removeTicker"
+          />
+          <!-- <div
             v-for="t in tickers"
             :key="t.name"
             @click="selectTicker(t)"
@@ -228,7 +236,7 @@
                 ></path></svg
               >Удалить
             </button>
-          </div>
+          </div> -->
         </dl>
         <hr class="w-full border-t border-gray-600 my-4" />
       </template>
@@ -278,23 +286,25 @@
 
 <script lang="ts">
 import { defineComponent, reactive } from "vue";
-import type { Ticker } from "./types/ticker";
+import Ticker from "./components/Ticker.vue";
+import type { TickerType } from "./types/ticker";
 import { fetchPrice } from "./utils/cryptoApi";
 
 export default defineComponent({
+  components: { Ticker },
   name: "App",
   data() {
     return {
       ticker: "",
-      tickers: [] as Ticker[],
-      selectedTiker: null as Ticker | null,
+      tickers: [] as TickerType[],
+      selectedTiker: null as TickerType | null,
       isError: false,
       graph: [] as number[],
     };
   },
   methods: {
     addTicker() {
-      const currentTicker: Ticker = reactive({
+      const currentTicker: TickerType = reactive({
         name: this.ticker,
         price: "-",
       });
@@ -324,7 +334,7 @@ export default defineComponent({
       }, 3000);
     },
 
-    removeTicker(ticker: Ticker) {
+    removeTicker(ticker: TickerType) {
       this.tickers = this.tickers.filter((t) => t.name !== ticker.name);
 
       if (ticker.name === this.selectedTiker?.name) {
@@ -333,7 +343,7 @@ export default defineComponent({
       }
     },
 
-    selectTicker(ticker: Ticker) {
+    selectTicker(ticker: TickerType) {
       this.selectedTiker = ticker;
       this.graph = [];
     },
