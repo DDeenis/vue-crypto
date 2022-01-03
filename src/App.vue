@@ -32,7 +32,7 @@
         @create="addTicker"
       />
       <template v-if="tickers.length">
-        <hr class="w-full border-t border-gray-500 my-4" />
+        <!-- <hr class="w-full border-t border-gray-500 my-4" />
         <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
           <ticker
             v-for="t in tickers"
@@ -43,7 +43,13 @@
             @remove="removeTicker"
           />
         </dl>
-        <hr class="w-full border-t border-gray-600 my-4" />
+        <hr class="w-full border-t border-gray-600 my-4" /> -->
+        <ticker-list
+          v-if="tickers.length"
+          :tickers="tickers"
+          @remove="removeTicker"
+          @select="selectTicker"
+        />
       </template>
       <chart
         v-if="selectedTiker"
@@ -60,11 +66,12 @@ import { defineComponent, reactive } from "vue";
 import Chart from "./components/Chart.vue";
 import NewTickerForm from "./components/NewTickerForm.vue";
 import Ticker from "./components/Ticker.vue";
+import TickerList from "./components/TickerList.vue";
 import type { TickerType } from "./types/ticker";
 import { fetchPrice } from "./utils/cryptoApi";
 
 export default defineComponent({
-  components: { Ticker, Chart, NewTickerForm },
+  components: { Ticker, Chart, NewTickerForm, TickerList },
   name: "App",
   data() {
     return {

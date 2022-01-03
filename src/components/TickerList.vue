@@ -1,0 +1,46 @@
+<template>
+  <hr class="w-full border-t border-gray-500 my-4" />
+  <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
+    <ticker
+      v-for="t in tickers"
+      :key="t.name"
+      :ticker="t"
+      :isSelected="selectedTicker?.name === t.name"
+      @select="selectTicker"
+      @remove="removeTicker"
+    />
+  </dl>
+  <hr class="w-full border-t border-gray-600 my-4" />
+</template>
+
+<script lang="ts">
+import { defineComponent, PropType } from "vue";
+import { TickerType } from "../types/ticker";
+import Ticker from "./Ticker.vue";
+
+export default defineComponent({
+  components: { Ticker },
+  props: {
+    tickers: {
+      type: Array as PropType<TickerType[]>,
+      required: true,
+    },
+  },
+  data() {
+    return {
+      selectedTicker: null as TickerType | null,
+    };
+  },
+  methods: {
+    removeTicker(ticker: TickerType) {
+      this.$emit("remove", ticker);
+    },
+
+    selectTicker(ticker: TickerType) {
+      this.selectedTicker = ticker;
+      this.$emit("select", ticker);
+    },
+  },
+  emits: ["remove", "select"],
+});
+</script>
