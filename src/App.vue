@@ -26,7 +26,12 @@
       </svg>
     </div> -->
     <div class="container">
-      <section>
+      <new-ticker-form
+        v-model="ticker"
+        :isError="isError"
+        @create="addTicker"
+      />
+      <!-- <section>
         <div class="flex">
           <div class="max-w-xs">
             <label for="wallet" class="block text-sm font-medium text-gray-700"
@@ -151,7 +156,6 @@
             focus:ring-gray-500
           "
         >
-          <!-- Heroicon name: solid/mail -->
           <svg
             class="-ml-0.5 mr-2 h-6 w-6"
             xmlns="http://www.w3.org/2000/svg"
@@ -166,7 +170,7 @@
           </svg>
           Добавить
         </button>
-      </section>
+      </section> -->
 
       <template v-if="tickers.length">
         <hr class="w-full border-t border-gray-500 my-4" />
@@ -195,12 +199,13 @@
 <script lang="ts">
 import { defineComponent, reactive } from "vue";
 import Chart from "./components/Chart.vue";
+import NewTickerForm from "./components/NewTickerForm.vue";
 import Ticker from "./components/Ticker.vue";
 import type { TickerType } from "./types/ticker";
 import { fetchPrice } from "./utils/cryptoApi";
 
 export default defineComponent({
-  components: { Ticker, Chart },
+  components: { Ticker, Chart, NewTickerForm },
   name: "App",
   data() {
     return {
