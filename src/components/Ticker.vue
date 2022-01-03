@@ -78,5 +78,6 @@ export default defineComponent({
       this.$emit("remove", this.ticker);
     },
   },
+  emits: ["select", "remove"],
 });
 </script>

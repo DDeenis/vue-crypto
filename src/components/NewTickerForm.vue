@@ -156,5 +156,6 @@ export default defineComponent({
       this.$emit("create", this.modelValue);
     },
   },
+  emits: ["update:modelValue", "create"],
 });
 </script>

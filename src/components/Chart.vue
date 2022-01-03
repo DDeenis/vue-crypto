@@ -56,5 +56,6 @@ export default defineComponent({
       this.$emit("close");
     },
   },
+  emits: ["close"],
 });
 </script>
