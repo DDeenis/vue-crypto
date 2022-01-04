@@ -1,6 +1,6 @@
 <template>
   <div class="container mx-auto flex flex-col items-center bg-gray-50 p-4">
-    <!-- <page-loader /> -->
+    <page-loader :visible="false" />
     <div class="container">
       <new-ticker-form
         v-model="ticker"
@@ -95,11 +95,10 @@ export default defineComponent({
     },
   },
   computed: {
-    normalizedGraph() {
+    normalizedGraph(): number[] {
       const min = Math.min(...this.graph);
       const max = Math.max(...this.graph);
 
-      // @ts-ignore
       return this.graph.map((p) => 5 + ((p - min) * 95) / (max - min));
     },
   },

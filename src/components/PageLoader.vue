@@ -1,5 +1,6 @@
 <template>
   <div
+    v-if="visible"
     class="fixed w-100 h-100 opacity-80 bg-purple-800 inset-0 z-50 flex items-center justify-center"
   >
     <svg
@@ -28,5 +29,9 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 
-export default defineComponent({});
+export default defineComponent({
+  props: {
+    visible: Boolean,
+  },
+});
 </script>

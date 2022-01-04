@@ -2,15 +2,7 @@
   <div
     @click="selectTicker"
     :class="{ 'border-4': isSelected }"
-    class="
-      bg-white
-      overflow-hidden
-      shadow
-      rounded-lg
-      border-purple-800 border-solid
-      cursor-pointer
-      py-2
-    "
+    class="bg-white overflow-hidden shadow rounded-lg border-purple-800 border-solid cursor-pointer py-2"
   >
     <div class="px-4 py-5 sm:p-6 text-center">
       <dt class="text-sm font-medium text-gray-400 truncate">
@@ -23,22 +15,7 @@
     <div class="w-full border-t border-gray-200"></div>
     <button
       @click.stop="removeTicker"
-      class="
-        flex
-        items-center
-        justify-center
-        font-medium
-        w-full
-        bg-gray-50
-        px-4
-        py-4
-        sm:px-6
-        text-md text-gray-400
-        hover:text-gray-600 hover:bg-gray-200
-        opacity-80
-        transition-all
-        focus:outline-none
-      "
+      class="flex items-center justify-center font-medium w-full bg-gray-50 px-4 py-4 sm:px-6 text-md text-gray-400 hover:text-gray-600 hover:bg-gray-200 opacity-80 transition-all focus:outline-none"
     >
       <svg
         class="h-5 w-5"
