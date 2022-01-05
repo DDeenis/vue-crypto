@@ -72,10 +72,7 @@ import { defineComponent } from "vue";
 
 export default defineComponent({
   props: {
-    modelValue: {
-      type: String,
-      required: true,
-    },
+    modelValue: String,
     isError: Boolean,
   },
   methods: {
