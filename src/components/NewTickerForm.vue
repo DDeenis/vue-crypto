@@ -17,28 +17,10 @@
             placeholder="Например DOGE"
           />
         </div>
-        <div class="flex bg-white shadow-md p-1 rounded-md flex-wrap">
-          <span
-            class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-200 text-gray-800 cursor-pointer"
-          >
-            BTC
-          </span>
-          <span
-            class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-200 text-gray-800 cursor-pointer"
-          >
-            DOGE
-          </span>
-          <span
-            class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-200 text-gray-800 cursor-pointer"
-          >
-            BCH
-          </span>
-          <span
-            class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-200 text-gray-800 cursor-pointer"
-          >
-            CHD
-          </span>
-        </div>
+        <ticker-hints
+          :tickerInput="modelValue ?? ''"
+          @selectHint="selectHint"
+        />
         <div v-if="isError" class="text-sm text-red-600">
           Такой тикер уже добавлен
         </div>
@@ -69,6 +51,7 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
+import TickerHints from "./TickerHints.vue";
 
 export default defineComponent({
   props: {
@@ -82,8 +65,14 @@ export default defineComponent({
 
     changeModel(event: Event) {
       this.$emit("update:modelValue", (event.target as HTMLInputElement).value);
+      this.$emit("input");
+    },
+
+    selectHint(hint: string) {
+      this.$emit("create", hint);
     },
   },
-  emits: ["update:modelValue", "create"],
+  emits: ["update:modelValue", "create", "input"],
+  components: { TickerHints },
 });
 </script>

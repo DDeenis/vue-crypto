@@ -5,7 +5,7 @@
     class="bg-white overflow-hidden shadow rounded-lg border-purple-800 border-solid cursor-pointer py-2"
   >
     <div class="px-4 py-5 sm:p-6 text-center">
-      <dt class="text-sm font-medium text-gray-400 truncate">
+      <dt class="text-sm font-medium text-gray-400 truncate uppercase">
         {{ ticker.name }} - USD
       </dt>
       <dd class="mt-2 text-3xl font-semibold text-gray-900">

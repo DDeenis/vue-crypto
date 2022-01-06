@@ -6,6 +6,7 @@
         v-model="ticker"
         :isError="isError"
         @create="addTicker"
+        @input="isError = false"
       />
       <ticker-list
         v-if="tickers.length"
@@ -40,18 +41,19 @@ export default defineComponent({
       ticker: "",
       tickers: [] as TickerType[],
       selectedTiker: null as TickerType | null,
+      trackedTickers: new Map<string, number>(),
       isError: false,
       graph: [] as number[],
     };
   },
   methods: {
-    addTicker() {
+    addTicker(tickerName: string) {
       const currentTicker: TickerType = reactive({
-        name: this.ticker,
+        name: tickerName.toLowerCase(),
         price: "-",
       });
 
-      if (!this.ticker) {
+      if (!tickerName) {
         return;
       }
 
@@ -64,20 +66,28 @@ export default defineComponent({
       this.tickers.push(currentTicker);
       this.ticker = "";
 
-      setInterval(async () => {
+      const intervalId = setInterval(async () => {
         const price = await fetchPrice(currentTicker.name);
+
         const currencyPrice =
-          price.USD > 0 ? price.USD.toFixed(2) : price.USD.toPrecision(2);
+          price?.USD && price?.USD > 0.001
+            ? price.USD?.toFixed(2) ?? "-"
+            : price.USD?.toPrecision(2) ?? "-";
         currentTicker.price = currencyPrice;
 
-        if (currentTicker?.name === this.selectedTiker?.name) {
-          this.graph.push(price.USD);
+        if (price?.USD && currentTicker?.name === this.selectedTiker?.name) {
+          this.graph.push(price?.USD);
         }
       }, 3000);
+
+      this.trackedTickers.set(currentTicker.name, intervalId);
     },
 
     removeTicker(ticker: TickerType) {
       this.tickers = this.tickers.filter((t) => t.name !== ticker.name);
+
+      clearInterval(this.trackedTickers.get(ticker.name));
+      this.trackedTickers.delete(ticker.name);
 
       if (ticker.name === this.selectedTiker?.name) {
         this.selectedTiker = null;
