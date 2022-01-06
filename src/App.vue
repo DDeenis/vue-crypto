@@ -36,6 +36,7 @@ import { fetchPrice } from "./utils/cryptoApi";
 export default defineComponent({
   components: { Chart, NewTickerForm, TickerList, PageLoader },
   name: "App",
+
   data() {
     return {
       ticker: "",
@@ -46,6 +47,7 @@ export default defineComponent({
       graph: [] as number[],
     };
   },
+
   methods: {
     addTicker(tickerName: string) {
       const currentTicker: TickerType = reactive({
@@ -65,7 +67,32 @@ export default defineComponent({
       this.isError = false;
       this.tickers.push(currentTicker);
       this.ticker = "";
+      localStorage.setItem("addedCoins", JSON.stringify(this.tickers));
 
+      this.startTickerTimer(currentTicker);
+    },
+
+    removeTicker(ticker: TickerType) {
+      this.tickers = this.tickers.filter((t) => t.name !== ticker.name);
+      localStorage.setItem("addedCoins", JSON.stringify(this.tickers));
+      this.stopTickerTimer(ticker);
+
+      if (ticker.name === this.selectedTiker?.name) {
+        this.selectedTiker = null;
+        this.graph = [];
+      }
+    },
+
+    selectTicker(ticker: TickerType) {
+      this.selectedTiker = ticker;
+      this.graph = [];
+    },
+
+    closeChart() {
+      this.selectedTiker = null;
+    },
+
+    startTickerTimer(currentTicker: TickerType) {
       const intervalId = setInterval(async () => {
         const price = await fetchPrice(currentTicker.name);
 
@@ -83,27 +110,12 @@ export default defineComponent({
       this.trackedTickers.set(currentTicker.name, intervalId);
     },
 
-    removeTicker(ticker: TickerType) {
-      this.tickers = this.tickers.filter((t) => t.name !== ticker.name);
-
+    stopTickerTimer(ticker: TickerType) {
       clearInterval(this.trackedTickers.get(ticker.name));
       this.trackedTickers.delete(ticker.name);
-
-      if (ticker.name === this.selectedTiker?.name) {
-        this.selectedTiker = null;
-        this.graph = [];
-      }
-    },
-
-    selectTicker(ticker: TickerType) {
-      this.selectedTiker = ticker;
-      this.graph = [];
-    },
-
-    closeChart() {
-      this.selectedTiker = null;
     },
   },
+
   computed: {
     normalizedGraph(): number[] {
       const min = Math.min(...this.graph);
@@ -111,6 +123,16 @@ export default defineComponent({
 
       return this.graph.map((p) => 5 + ((p - min) * 95) / (max - min));
     },
+  },
+
+  created() {
+    const savedCoins = localStorage.getItem("addedCoins");
+
+    if (savedCoins) {
+      this.tickers = JSON.parse(savedCoins);
+
+      this.tickers.forEach((t) => this.startTickerTimer(t));
+    }
   },
 });
 </script>
