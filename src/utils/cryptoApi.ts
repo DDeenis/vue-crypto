@@ -16,11 +16,7 @@ export const fetchCoinsList = async () => {
     "https://min-api.cryptocompare.com/data/all/coinlist?summary=true";
   const response = await fetch(link);
   const data = await response.json();
-  const coinNames: string[] = [];
-
-  for (const name in data.Data) {
-    coinNames.push(name);
-  }
+  const coinNames = Object.keys(data.Data);
 
   return coinNames;
 };
