@@ -143,8 +143,14 @@ export default defineComponent({
 
     getParamsFromSearchQuery() {
       const searchParams = searchParamsUtils.getValues("filter", "page");
+      const savedPage = parseInt(searchParams.page || "1");
+      const page =
+        savedPage > 0 && savedPage * this.pageSize < this.tickers.length
+          ? savedPage
+          : 1;
+
       this.filter = searchParams.filter || "";
-      this.page = parseInt(searchParams.page || "1");
+      this.page = page;
     },
   },
 
@@ -178,7 +184,7 @@ export default defineComponent({
         },
         {
           key: "page",
-          value: this.page.toString(),
+          value: String(this.page),
         },
       ];
     },
