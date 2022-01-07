@@ -8,9 +8,19 @@
         @create="addTicker"
         @input="isError = false"
       />
-      <ticker-list
+      <hr v-if="tickers.length" class="w-full border-t border-gray-500 my-4" />
+      <ticker-page-filter
         v-if="tickers.length"
-        :tickers="tickers"
+        v-model="filter"
+        :page="page"
+        :pageSize="pageSize"
+        :hasNext="hasNextPage"
+        @next="changePage"
+        @previous="changePage"
+      />
+      <ticker-list
+        v-if="pagedTickers.length"
+        :tickers="pagedTickers"
         @remove="removeTicker"
         @select="selectTicker"
       />
@@ -32,9 +42,16 @@ import TickerList from "./components/TickerList.vue";
 import PageLoader from "./components/PageLoader.vue";
 import type { TickerType } from "./types/ticker";
 import { fetchPrice } from "./utils/cryptoApi";
+import TickerPageFilter from "./components/TickerPageFilter.vue";
 
 export default defineComponent({
-  components: { Chart, NewTickerForm, TickerList, PageLoader },
+  components: {
+    Chart,
+    NewTickerForm,
+    TickerList,
+    PageLoader,
+    TickerPageFilter,
+  },
   name: "App",
 
   data() {
@@ -45,6 +62,9 @@ export default defineComponent({
       trackedTickers: new Map<string, number>(),
       isError: false,
       graph: [] as number[],
+      filter: "",
+      page: 1,
+      pageSize: 6,
     };
   },
 
@@ -67,15 +87,16 @@ export default defineComponent({
       this.isError = false;
       this.tickers.push(currentTicker);
       this.ticker = "";
+      this.filter = "";
       localStorage.setItem("addedCoins", JSON.stringify(this.tickers));
 
-      this.startTickerTimer(currentTicker);
+      this.startTicker(currentTicker);
     },
 
     removeTicker(ticker: TickerType) {
       this.tickers = this.tickers.filter((t) => t.name !== ticker.name);
       localStorage.setItem("addedCoins", JSON.stringify(this.tickers));
-      this.stopTickerTimer(ticker);
+      this.stopTicker(ticker.name);
 
       if (ticker.name === this.selectedTiker?.name) {
         this.selectedTiker = null;
@@ -92,7 +113,7 @@ export default defineComponent({
       this.selectedTiker = null;
     },
 
-    startTickerTimer(currentTicker: TickerType) {
+    startTicker(currentTicker: TickerType) {
       const intervalId = setInterval(async () => {
         const price = await fetchPrice(currentTicker.name);
 
@@ -110,9 +131,13 @@ export default defineComponent({
       this.trackedTickers.set(currentTicker.name, intervalId);
     },
 
-    stopTickerTimer(ticker: TickerType) {
-      clearInterval(this.trackedTickers.get(ticker.name));
-      this.trackedTickers.delete(ticker.name);
+    stopTicker(tickerName: string) {
+      clearInterval(this.trackedTickers.get(tickerName));
+      this.trackedTickers.delete(tickerName);
+    },
+
+    changePage(newPage: number) {
+      this.page = newPage;
     },
   },
 
@@ -123,6 +148,20 @@ export default defineComponent({
 
       return this.graph.map((p) => 5 + ((p - min) * 95) / (max - min));
     },
+
+    hasNextPage(): boolean {
+      const end = this.pageSize * this.page;
+      return this.tickers.length > end;
+    },
+
+    pagedTickers(): TickerType[] {
+      const start = this.pageSize * (this.page - 1);
+      const end = this.pageSize * this.page;
+
+      return this.tickers
+        .filter((t) => t.name.includes(this.filter))
+        .slice(start, end);
+    },
   },
 
   created() {
@@ -131,7 +170,7 @@ export default defineComponent({
     if (savedCoins) {
       this.tickers = JSON.parse(savedCoins);
 
-      this.tickers.forEach((t) => this.startTickerTimer(t));
+      this.tickers.forEach((t) => this.startTicker(t));
     }
   },
 });
