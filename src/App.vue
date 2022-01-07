@@ -43,6 +43,7 @@ import PageLoader from "./components/PageLoader.vue";
 import type { TickerType } from "./types/ticker";
 import { fetchPrice } from "./utils/cryptoApi";
 import TickerPageFilter from "./components/TickerPageFilter.vue";
+import { searchParamsUtils } from "./utils/history";
 
 export default defineComponent({
   components: {
@@ -139,6 +140,12 @@ export default defineComponent({
     changePage(newPage: number) {
       this.page = newPage;
     },
+
+    getParamsFromSearchQuery() {
+      const searchParams = searchParamsUtils.getValues("filter", "page");
+      this.filter = searchParams.filter || "";
+      this.page = parseInt(searchParams.page || "1");
+    },
   },
 
   computed: {
@@ -162,16 +169,39 @@ export default defineComponent({
         .filter((t) => t.name.includes(this.filter))
         .slice(start, end);
     },
+
+    urlParams(): { key: string; value: string }[] {
+      return [
+        {
+          key: "filter",
+          value: this.filter,
+        },
+        {
+          key: "page",
+          value: this.page.toString(),
+        },
+      ];
+    },
   },
 
   created() {
     const savedCoins = localStorage.getItem("addedCoins");
+    this.getParamsFromSearchQuery();
 
     if (savedCoins) {
       this.tickers = JSON.parse(savedCoins);
-
       this.tickers.forEach((t) => this.startTicker(t));
     }
+  },
+
+  watch: {
+    filter() {
+      searchParamsUtils.setValues(this.urlParams);
+    },
+
+    page() {
+      searchParamsUtils.setValues(this.urlParams);
+    },
   },
 });
 </script>
