@@ -41,7 +41,7 @@ import NewTickerForm from "./components/NewTickerForm.vue";
 import TickerList from "./components/TickerList.vue";
 import PageLoader from "./components/PageLoader.vue";
 import type { TickerType } from "./types/ticker";
-import { fetchPrice } from "./utils/cryptoApi";
+import { fetchMultiplePrices } from "./utils/cryptoApi";
 import TickerPageFilter from "./components/TickerPageFilter.vue";
 import { searchParamsUtils } from "./utils/history";
 
@@ -60,7 +60,6 @@ export default defineComponent({
       ticker: "",
       tickers: [] as TickerType[],
       selectedTiker: null as TickerType | null,
-      trackedTickers: new Map<string, number>(),
       isError: false,
       graph: [] as number[],
       filter: "",
@@ -90,14 +89,11 @@ export default defineComponent({
       this.ticker = "";
       this.filter = "";
       localStorage.setItem("addedCoins", JSON.stringify(this.tickers));
-
-      this.startTicker(currentTicker);
     },
 
     removeTicker(ticker: TickerType) {
       this.tickers = this.tickers.filter((t) => t.name !== ticker.name);
       localStorage.setItem("addedCoins", JSON.stringify(this.tickers));
-      this.stopTicker(ticker.name);
 
       if (ticker.name === this.selectedTiker?.name) {
         this.selectedTiker = null;
@@ -114,27 +110,25 @@ export default defineComponent({
       this.selectedTiker = null;
     },
 
-    startTicker(currentTicker: TickerType) {
-      const intervalId = setInterval(async () => {
-        const price = await fetchPrice(currentTicker.name);
+    startTickers() {
+      setInterval(async () => {
+        const coinsList = this.tickers.map((t) => t.name);
+        const prices = await fetchMultiplePrices(coinsList);
 
-        const currencyPrice =
-          price?.USD && price?.USD > 0.001
-            ? price.USD?.toFixed(2) ?? "-"
-            : price.USD?.toPrecision(2) ?? "-";
-        currentTicker.price = currencyPrice;
+        this.tickers.forEach((t) => {
+          const price = prices[t.name.toUpperCase()];
+          const currencyPrice =
+            price?.USD && price?.USD > 0.001
+              ? price.USD?.toFixed(2) ?? "-"
+              : price.USD?.toPrecision(2) ?? "-";
 
-        if (price?.USD && currentTicker?.name === this.selectedTiker?.name) {
-          this.graph.push(price?.USD);
-        }
+          t.price = currencyPrice;
+
+          if (price?.USD && t?.name === this.selectedTiker?.name) {
+            this.graph.push(price?.USD);
+          }
+        });
       }, 3000);
-
-      this.trackedTickers.set(currentTicker.name, intervalId);
-    },
-
-    stopTicker(tickerName: string) {
-      clearInterval(this.trackedTickers.get(tickerName));
-      this.trackedTickers.delete(tickerName);
     },
 
     changePage(newPage: number) {
@@ -199,8 +193,9 @@ export default defineComponent({
 
     if (savedCoins) {
       this.tickers = JSON.parse(savedCoins);
-      this.tickers.forEach((t) => this.startTicker(t));
     }
+
+    this.startTickers();
   },
 
   watch: {
