@@ -52,7 +52,7 @@ export default defineComponent({
 
   emits: ["selectHint"],
 
-  async mounted() {
+  async created() {
     const savedNames = localStorage.getItem("coinNames");
 
     if (savedNames) {

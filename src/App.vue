@@ -159,7 +159,10 @@ export default defineComponent({
       const min = Math.min(...this.graph);
       const max = Math.max(...this.graph);
 
-      return this.graph.map((p) => 5 + ((p - min) * 95) / (max - min));
+      return this.graph.map((p) => {
+        const height = 5 + ((p - min) * 95) / (max - min);
+        return isNaN(height) ? 5 : height;
+      });
     },
 
     hasNextPage(): boolean {
