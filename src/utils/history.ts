@@ -1,3 +1,5 @@
+import type { SearchParamEntry } from "../types/history";
+
 class SearchParamsUtils {
   values: Map<string, string>;
 
@@ -10,7 +12,7 @@ class SearchParamsUtils {
     this.updateUrl();
   }
 
-  setValues(values: { key: string; value: string }[]) {
+  setValues(values: SearchParamEntry[]) {
     values.forEach((v) => this.setValue(v.key, v.value));
   }
 

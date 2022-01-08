@@ -8,7 +8,7 @@
         v-for="(price, i) in graph"
         :key="i"
         :style="{ height: `${price}%` }"
-        class="bg-purple-800 border w-[100%] max-w-[2.5rem]"
+        class="bg-purple-800 border w-full max-w-[2.5rem]"
       ></div>
     </div>
     <button type="button" class="absolute top-0 right-0" @click="closeChart">

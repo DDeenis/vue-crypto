@@ -40,10 +40,11 @@ import Chart from "./components/Chart.vue";
 import NewTickerForm from "./components/NewTickerForm.vue";
 import TickerList from "./components/TickerList.vue";
 import PageLoader from "./components/PageLoader.vue";
-import type { TickerType } from "./types/ticker";
 import { fetchMultiplePrices } from "./utils/cryptoApi";
 import TickerPageFilter from "./components/TickerPageFilter.vue";
 import { searchParamsUtils } from "./utils/history";
+import type { TickerType } from "./types/ticker";
+import type { SearchParamEntry } from "./types/history";
 
 export default defineComponent({
   components: {
@@ -60,8 +61,11 @@ export default defineComponent({
       ticker: "",
       tickers: [] as TickerType[],
       selectedTiker: null as TickerType | null,
+
       isError: false,
       graph: [] as number[],
+      updateCoinsInterval: 0,
+
       filter: "",
       page: 1,
       pageSize: 6,
@@ -88,12 +92,10 @@ export default defineComponent({
       this.tickers.push(currentTicker);
       this.ticker = "";
       this.filter = "";
-      localStorage.setItem("addedCoins", JSON.stringify(this.tickers));
     },
 
     removeTicker(ticker: TickerType) {
       this.tickers = this.tickers.filter((t) => t.name !== ticker.name);
-      localStorage.setItem("addedCoins", JSON.stringify(this.tickers));
 
       if (ticker.name === this.selectedTiker?.name) {
         this.selectedTiker = null;
@@ -111,7 +113,7 @@ export default defineComponent({
     },
 
     startTickers() {
-      setInterval(async () => {
+      this.updateCoinsInterval = setInterval(async () => {
         const coinsList = this.tickers.map((t) => t.name);
         const prices = await fetchMultiplePrices(coinsList);
 
@@ -153,27 +155,35 @@ export default defineComponent({
       const min = Math.min(...this.graph);
       const max = Math.max(...this.graph);
 
+      if (min === max) {
+        return this.graph.map(() => 50);
+      }
+
       return this.graph.map((p) => {
         const height = 5 + ((p - min) * 95) / (max - min);
-        return isNaN(height) ? 5 : height;
+        return height;
       });
     },
 
     hasNextPage(): boolean {
-      const end = this.pageSize * this.page;
-      return this.tickers.length > end;
+      return this.tickers.length > this.pageEnd;
+    },
+
+    pageStart(): number {
+      return this.pageSize * (this.page - 1);
+    },
+
+    pageEnd(): number {
+      return this.pageSize * this.page;
     },
 
     pagedTickers(): TickerType[] {
-      const start = this.pageSize * (this.page - 1);
-      const end = this.pageSize * this.page;
-
       return this.tickers
         .filter((t) => t.name.includes(this.filter))
-        .slice(start, end);
+        .slice(this.pageStart, this.pageEnd);
     },
 
-    urlParams(): { key: string; value: string }[] {
+    urlParams(): SearchParamEntry[] {
       return [
         {
           key: "filter",
@@ -198,13 +208,29 @@ export default defineComponent({
     this.startTickers();
   },
 
+  unmounted() {
+    clearInterval(this.updateCoinsInterval);
+  },
+
   watch: {
-    filter() {
-      searchParamsUtils.setValues(this.urlParams);
+    urlParams: {
+      handler() {
+        searchParamsUtils.setValues(this.urlParams);
+      },
+      deep: true,
     },
 
-    page() {
-      searchParamsUtils.setValues(this.urlParams);
+    pagedTickers() {
+      if (this.pagedTickers.length === 0 && this.page > 1) {
+        --this.page;
+      }
+    },
+
+    tickers: {
+      handler() {
+        localStorage.setItem("addedCoins", JSON.stringify(this.tickers));
+      },
+      deep: true,
     },
   },
 });
