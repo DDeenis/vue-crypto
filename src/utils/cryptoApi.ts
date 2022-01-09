@@ -5,7 +5,12 @@ export const fetchPrice = async (
   currencies: string[] = ["USD"]
 ): Promise<Record<typeof currencies[number], number | undefined>> => {
   const currenciesStr = currencies.join(",");
-  const link = `https://min-api.cryptocompare.com/data/price?fsym=${coin}&tsyms=${currenciesStr}&api_key=${API_KEY}`;
+
+  const url = new URL("https://min-api.cryptocompare.com/data/price");
+  url.searchParams.set("fsym", coin);
+  url.searchParams.set("tsyms", currenciesStr);
+  url.searchParams.set("api_key", API_KEY);
+  const link = url.toString();
 
   const response = await fetch(link);
   return await response.json();
@@ -22,7 +27,12 @@ export const fetchMultiplePrices = async (
 > => {
   const coinsStr = coins.join(",");
   const currenciesStr = currencies.join(",");
-  const link = `https://min-api.cryptocompare.com/data/pricemulti?fsyms=${coinsStr}&tsyms=${currenciesStr}&api_key=${API_KEY}`;
+
+  const url = new URL("https://min-api.cryptocompare.com/data/pricemulti");
+  url.searchParams.set("fsyms", coinsStr);
+  url.searchParams.set("tsyms", currenciesStr);
+  url.searchParams.set("api_key", API_KEY);
+  const link = url.toString();
 
   const response = await fetch(link);
   return await response.json();

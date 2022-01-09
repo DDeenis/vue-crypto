@@ -39,22 +39,18 @@ class SearchParamsUtils {
   }
 
   updateUrl() {
-    let templateUrl = "?";
+    const url = new URL(location.href);
 
     this.values.forEach((val, key) => {
       if (!val) {
+        url.searchParams.delete(key);
         return;
       }
 
-      if (templateUrl.length > 1) {
-        templateUrl += "&";
-      }
-
-      templateUrl += `${key}=${val}`;
+      url.searchParams.set(key, val);
     });
 
-    const finalUrl = templateUrl.length <= 1 ? "/" : templateUrl;
-    history.pushState(null, "", finalUrl);
+    history.pushState(null, "", url.toString());
   }
 }
 

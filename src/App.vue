@@ -115,6 +115,11 @@ export default defineComponent({
     startTickers() {
       this.updateCoinsInterval = setInterval(async () => {
         const coinsList = this.tickers.map((t) => t.name);
+
+        if (!coinsList.length) {
+          return;
+        }
+
         const prices = await fetchMultiplePrices(coinsList);
 
         this.tickers.forEach((t) => {
@@ -218,6 +223,10 @@ export default defineComponent({
         searchParamsUtils.setValues(this.urlParams);
       },
       deep: true,
+    },
+
+    filter() {
+      this.page = 1;
     },
 
     pagedTickers() {
