@@ -40,7 +40,7 @@ import Chart from "./components/Chart.vue";
 import NewTickerForm from "./components/NewTickerForm.vue";
 import TickerList from "./components/TickerList.vue";
 import PageLoader from "./components/PageLoader.vue";
-import { fetchMultiplePrices } from "./utils/cryptoApi";
+import { CryptoApi } from "./utils/cryptoApi";
 import TickerPageFilter from "./components/TickerPageFilter.vue";
 import { searchParamsUtils } from "./utils/history";
 import type { TickerType } from "./types/ticker";
@@ -69,6 +69,8 @@ export default defineComponent({
       filter: "",
       page: 1,
       pageSize: 6,
+
+      api: new CryptoApi(),
     };
   },
 
@@ -92,10 +94,13 @@ export default defineComponent({
       this.tickers.push(currentTicker);
       this.ticker = "";
       this.filter = "";
+
+      this.subscribeTicker(currentTicker.name);
     },
 
     removeTicker(ticker: TickerType) {
       this.tickers = this.tickers.filter((t) => t.name !== ticker.name);
+      this.api.unsubscribeAll(ticker.name);
 
       if (ticker.name === this.selectedTiker?.name) {
         this.selectedTiker = null;
@@ -112,30 +117,39 @@ export default defineComponent({
       this.selectedTiker = null;
     },
 
-    startTickers() {
-      this.updateCoinsInterval = setInterval(async () => {
-        const coinsList = this.tickers.map((t) => t.name);
+    // async updateTickers() {
+    //   const coinsList = this.tickers.map((t) => t.name);
 
-        if (!coinsList.length) {
-          return;
-        }
+    //   if (!coinsList.length) {
+    //     return;
+    //   }
 
-        const prices = await fetchMultiplePrices(coinsList);
+    //   const prices = await fetchMultiplePrices(coinsList);
 
-        this.tickers.forEach((t) => {
-          const price = prices[t.name.toUpperCase()];
-          const currencyPrice =
-            price?.USD && price?.USD > 0.001
-              ? price.USD?.toFixed(2) ?? "-"
-              : price.USD?.toPrecision(2) ?? "-";
+    //   this.tickers.forEach((t) => {
+    //     const price = prices[t.name.toUpperCase()]?.USD;
+    //     t.price = price !== undefined ? this.formatPrice(price) : "-";
 
-          t.price = currencyPrice;
+    //     if (price && t?.name === this.selectedTiker?.name) {
+    //       this.graph.push(price);
+    //     }
+    //   });
+    // },
 
-          if (price?.USD && t?.name === this.selectedTiker?.name) {
-            this.graph.push(price?.USD);
-          }
-        });
-      }, 3000);
+    updateTicker(name: string, price: number) {
+      const ticker = this.tickers.find((t) => t.name === name);
+
+      if (ticker) {
+        ticker.price = price;
+      }
+    },
+
+    subscribeTickers() {
+      this.tickers.forEach((t) => this.subscribeTicker(t.name));
+    },
+
+    subscribeTicker(name: string) {
+      this.api.subscribe(name, (price) => this.updateTicker(name, price ?? 0));
     },
 
     changePage(newPage: number) {
@@ -210,7 +224,8 @@ export default defineComponent({
       this.tickers = JSON.parse(savedCoins);
     }
 
-    this.startTickers();
+    this.subscribeTickers();
+    this.api.startUpdate();
   },
 
   unmounted() {

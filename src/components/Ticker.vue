@@ -9,7 +9,7 @@
         {{ ticker.name }} - USD
       </dt>
       <dd class="mt-2 text-3xl font-semibold text-gray-900">
-        {{ ticker.price }}
+        {{ formatPrice(ticker.price) }}
       </dd>
     </div>
     <div class="w-full border-t border-gray-200"></div>
@@ -54,6 +54,17 @@ export default defineComponent({
 
     removeTicker() {
       this.$emit("remove", this.ticker);
+    },
+
+    formatPrice(price: number | "-") {
+      if (!price || price === "-") {
+        return price;
+      }
+
+      const formatted =
+        price > 0.001 ? price.toFixed(2) ?? "-" : price.toPrecision(2) ?? "-";
+
+      return formatted;
     },
   },
   emits: ["select", "remove"],
