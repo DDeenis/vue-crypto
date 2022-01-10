@@ -53,6 +53,7 @@ export class CryptoApi {
   socket: WebSocket;
   handlers: Map<string, SubscribeCallback[]>;
   timeout: number;
+  AGGREGATE_INDEX = "5" as const;
   _updateInterval?: number;
   _messageQueue: string[];
 
@@ -118,7 +119,7 @@ export class CryptoApi {
     const response = JSON.parse(message.data);
     const { PRICE, FROMSYMBOL, TYPE } = response;
 
-    if (TYPE === "5") {
+    if (TYPE === this.AGGREGATE_INDEX) {
       this.handlers.get(FROMSYMBOL?.toLowerCase())?.forEach((fn) => fn(PRICE));
     }
   }
