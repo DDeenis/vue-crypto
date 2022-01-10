@@ -54,6 +54,7 @@ export class CryptoApi {
   handlers: Map<string, SubscribeCallback[]>;
   timeout: number;
   _updateInterval?: number;
+  _messageQueue: string[];
 
   constructor() {
     this.socket = new WebSocket(
@@ -61,11 +62,13 @@ export class CryptoApi {
     );
     this.handlers = new Map();
     this.timeout = 5000;
+    this._messageQueue = [];
   }
 
   subscribe(coin: string, callback: SubscribeCallback) {
     const subscribers = this.handlers.get(coin) ?? [];
     this.handlers.set(coin, [...subscribers, callback]);
+    this._socketSubscribe(coin);
   }
 
   unsubscribe(coin: string, callback: SubscribeCallback) {
@@ -76,37 +79,84 @@ export class CryptoApi {
     );
   }
 
-  unsubscribeAll(coin: string) {
-    this.handlers.delete(coin);
+  _socketSend(msg: string) {
+    if (this.socket.readyState === this.socket.CONNECTING) {
+      this._messageQueue.push(msg);
+    } else {
+      this.socket.send(msg);
+    }
   }
 
-  async update() {
+  _socketSubscribe(coin: string) {
+    this._socketSend(
+      JSON.stringify({
+        action: "SubAdd",
+        subs: [`5~CCCAGG~${coin.toUpperCase()}~USD`],
+      })
+    );
+  }
+
+  _socketUnsubscribe(coin: string) {
+    this._socketSend(
+      JSON.stringify({
+        action: "SubRemove",
+        subs: [`5~CCCAGG~${coin.toUpperCase()}~USD`],
+      })
+    );
+  }
+
+  unsubscribeAll(coin: string) {
+    this.handlers.delete(coin);
+    this._socketUnsubscribe(coin);
+  }
+
+  async update(message: MessageEvent<any>) {
     if (!this.handlers.size) {
       return;
     }
 
-    // bad
-    const response = await fetchMultiplePrices([...this.handlers.keys()]);
+    const response = JSON.parse(message.data);
+    const { PRICE, FROMSYMBOL, TYPE } = response;
 
-    this.handlers.forEach((callbacks, coin) => {
-      const price = response[coin.toUpperCase()]?.USD;
-      callbacks.forEach((fn) => fn(price));
-    });
+    if (TYPE === "5") {
+      this.handlers.get(FROMSYMBOL?.toLowerCase())?.forEach((fn) => fn(PRICE));
+    }
   }
 
   startUpdate() {
-    this.stopUpdate();
-    this._updateInterval = setInterval(() => this.update(), this.timeout);
+    this.socket.onmessage = (e) => this.update(e);
+    this.socket.addEventListener("open", () => this._startQueue(), {
+      once: true,
+    });
   }
 
   stopUpdate() {
-    if (this._updateInterval) {
-      clearInterval(this._updateInterval);
+    const coins = [...this.handlers.keys()];
+    const unsubCoins = coins.map((c) => `5~CCCAGG~${c.toUpperCase()}~USD`);
+
+    this._socketSend(
+      JSON.stringify({
+        action: "SubRemove",
+        subs: unsubCoins,
+      })
+    );
+    this.socket.close();
+  }
+
+  _startQueue() {
+    while (this._messageQueue.length) {
+      if (this.socket.readyState !== this.socket.CONNECTING) {
+        const msg = this._messageQueue.pop();
+
+        if (msg) {
+          this.socket.send(msg);
+        }
+      }
     }
   }
 
   _init() {
-    this.socket.send(
+    this._socketSend(
       JSON.stringify({
         action: "SubAdd",
         subs: ["2~Binance~BTC~USD"],

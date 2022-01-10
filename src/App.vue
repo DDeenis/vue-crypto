@@ -35,7 +35,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive } from "vue";
+import { defineComponent } from "vue";
 import Chart from "./components/Chart.vue";
 import NewTickerForm from "./components/NewTickerForm.vue";
 import TickerList from "./components/TickerList.vue";
@@ -76,10 +76,10 @@ export default defineComponent({
 
   methods: {
     addTicker(tickerName: string) {
-      const currentTicker: TickerType = reactive({
+      const currentTicker: TickerType = {
         name: tickerName.toLowerCase(),
         price: "-",
-      });
+      };
 
       if (!tickerName) {
         return;
@@ -117,30 +117,21 @@ export default defineComponent({
       this.selectedTiker = null;
     },
 
-    // async updateTickers() {
-    //   const coinsList = this.tickers.map((t) => t.name);
-
-    //   if (!coinsList.length) {
-    //     return;
-    //   }
-
-    //   const prices = await fetchMultiplePrices(coinsList);
-
-    //   this.tickers.forEach((t) => {
-    //     const price = prices[t.name.toUpperCase()]?.USD;
-    //     t.price = price !== undefined ? this.formatPrice(price) : "-";
-
-    //     if (price && t?.name === this.selectedTiker?.name) {
-    //       this.graph.push(price);
-    //     }
-    //   });
-    // },
-
-    updateTicker(name: string, price: number) {
+    updateTicker(name: string, price?: number) {
       const ticker = this.tickers.find((t) => t.name === name);
 
       if (ticker) {
-        ticker.price = price;
+        ticker.price = price ?? ticker.price;
+      }
+
+      if (ticker?.name === this.selectedTiker?.name) {
+        this.addGraphElement(price);
+      }
+    },
+
+    addGraphElement(price?: number) {
+      if (price) {
+        this.graph.push(price);
       }
     },
 
@@ -149,7 +140,7 @@ export default defineComponent({
     },
 
     subscribeTicker(name: string) {
-      this.api.subscribe(name, (price) => this.updateTicker(name, price ?? 0));
+      this.api.subscribe(name, (price) => this.updateTicker(name, price));
     },
 
     changePage(newPage: number) {
