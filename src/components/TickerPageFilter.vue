@@ -20,7 +20,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent } from "vue";
+import { defineComponent, ref } from "vue";
 import AppButton from "./common/AppButton.vue";
 import AppInput from "./common/AppInput.vue";
 
@@ -36,22 +36,14 @@ export default defineComponent({
       required: true,
     },
   },
-  data() {
+  setup(props) {
+    const _page = ref(props.page || 1);
+    const _pageSize = ref(props.pageSize || 6);
     return {
-      _page: 1,
-      _pageSize: 6,
+      _page,
+      _pageSize,
     };
   },
-  created() {
-    this._page = this.page || 1;
-    this._pageSize = this.pageSize || 6;
-  },
-  //   setup(props) {
-  //     return {
-  //       _page: props.page || 1,
-  //       _pageSize: props.pageSize || 6,
-  //     };
-  //   },
   methods: {
     changeModel(event: Event) {
       this.$emit("update:modelValue", (event.target as HTMLInputElement).value);

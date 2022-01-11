@@ -49,27 +49,106 @@ export const fetchCoinsList = async () => {
   return coinNames;
 };
 
-export class CryptoApi {
+export class CryptoSocket {
   socket: WebSocket;
-  handlers: Map<string, SubscribeCallback[]>;
-  timeout: number;
   AGGREGATE_INDEX = "5" as const;
-  _updateInterval?: number;
-  _messageQueue: string[];
+  messageQueue: string[];
+  subscribed: string[];
+  onmessage?: (e: any) => void;
 
-  constructor() {
+  constructor(handler?: (e: MessageEvent<any>) => void) {
     this.socket = new WebSocket(
       `wss://streamer.cryptocompare.com/v2?api_key=${API_KEY}`
     );
+    this.messageQueue = [];
+    this.subscribed = [];
+    this.onmessage = handler;
+    this._initSocket();
+  }
+
+  send(msg: unknown) {
+    const msgStr = JSON.stringify(msg);
+
+    if (this.socket.readyState === this.socket.CONNECTING) {
+      this.messageQueue.push(msgStr);
+    } else {
+      this.socket.send(msgStr);
+    }
+  }
+
+  subscribeTicker(coin: string) {
+    this.subscribed.push(coin);
+    this.send({
+      action: "SubAdd",
+      subs: [`5~CCCAGG~${coin.toUpperCase()}~USD`],
+    });
+  }
+
+  unsubscribeTicker(coin: string) {
+    this.send({
+      action: "SubRemove",
+      subs: [`5~CCCAGG~${coin.toUpperCase()}~USD`],
+    });
+  }
+
+  _initSocket() {
+    this.socket.onmessage = (e) => {
+      const response = JSON.parse(e.data);
+      const { TYPE } = response;
+
+      if (TYPE === this.AGGREGATE_INDEX) {
+        this.onmessage?.(response);
+      }
+    };
+    this.socket.addEventListener("open", () => this.sendQueueMessages(), {
+      once: true,
+    });
+  }
+
+  close() {
+    const unsubCoins = this.subscribed.map(
+      (c) => `5~CCCAGG~${c.toUpperCase()}~USD`
+    );
+
+    this.send({
+      action: "SubRemove",
+      subs: unsubCoins,
+    });
+
+    if (
+      this.socket.readyState !== this.socket.CLOSED &&
+      this.socket.readyState !== this.socket.CLOSING
+    ) {
+      this.socket.close();
+    }
+  }
+
+  sendQueueMessages() {
+    while (this.messageQueue.length) {
+      if (this.socket.readyState !== this.socket.CONNECTING) {
+        const msg = this.messageQueue.pop();
+
+        if (msg) {
+          this.socket.send(msg);
+        }
+      }
+    }
+  }
+}
+
+export class CryptoObserver {
+  api: CryptoSocket;
+  handlers: Map<string, SubscribeCallback[]>;
+
+  constructor() {
     this.handlers = new Map();
-    this.timeout = 5000;
-    this._messageQueue = [];
+    this.api = new CryptoSocket((e) => this.update(e));
   }
 
   subscribe(coin: string, callback: SubscribeCallback) {
     const subscribers = this.handlers.get(coin) ?? [];
     this.handlers.set(coin, [...subscribers, callback]);
-    this._socketSubscribe(coin);
+    this.api.subscribeTicker(coin);
   }
 
   unsubscribe(coin: string, callback: SubscribeCallback) {
@@ -80,88 +159,21 @@ export class CryptoApi {
     );
   }
 
-  _socketSend(msg: string) {
-    if (this.socket.readyState === this.socket.CONNECTING) {
-      this._messageQueue.push(msg);
-    } else {
-      this.socket.send(msg);
-    }
-  }
-
-  _socketSubscribe(coin: string) {
-    this._socketSend(
-      JSON.stringify({
-        action: "SubAdd",
-        subs: [`5~CCCAGG~${coin.toUpperCase()}~USD`],
-      })
-    );
-  }
-
-  _socketUnsubscribe(coin: string) {
-    this._socketSend(
-      JSON.stringify({
-        action: "SubRemove",
-        subs: [`5~CCCAGG~${coin.toUpperCase()}~USD`],
-      })
-    );
-  }
-
   unsubscribeAll(coin: string) {
     this.handlers.delete(coin);
-    this._socketUnsubscribe(coin);
+    this.api.unsubscribeTicker(coin);
   }
 
-  async update(message: MessageEvent<any>) {
+  async update(message: any) {
     if (!this.handlers.size) {
       return;
     }
+    const { PRICE, FROMSYMBOL } = message;
 
-    const response = JSON.parse(message.data);
-    const { PRICE, FROMSYMBOL, TYPE } = response;
-
-    if (TYPE === this.AGGREGATE_INDEX) {
-      this.handlers.get(FROMSYMBOL?.toLowerCase())?.forEach((fn) => fn(PRICE));
-    }
-  }
-
-  startUpdate() {
-    this.socket.onmessage = (e) => this.update(e);
-    this.socket.addEventListener("open", () => this._startQueue(), {
-      once: true,
-    });
+    this.handlers.get(FROMSYMBOL.toLowerCase())?.forEach((fn) => fn(PRICE));
   }
 
   stopUpdate() {
-    const coins = [...this.handlers.keys()];
-    const unsubCoins = coins.map((c) => `5~CCCAGG~${c.toUpperCase()}~USD`);
-
-    this._socketSend(
-      JSON.stringify({
-        action: "SubRemove",
-        subs: unsubCoins,
-      })
-    );
-    this.socket.close();
-  }
-
-  _startQueue() {
-    while (this._messageQueue.length) {
-      if (this.socket.readyState !== this.socket.CONNECTING) {
-        const msg = this._messageQueue.pop();
-
-        if (msg) {
-          this.socket.send(msg);
-        }
-      }
-    }
-  }
-
-  _init() {
-    this._socketSend(
-      JSON.stringify({
-        action: "SubAdd",
-        subs: ["2~Binance~BTC~USD"],
-      })
-    );
+    this.api.close();
   }
 }

@@ -40,7 +40,7 @@ import Chart from "./components/Chart.vue";
 import NewTickerForm from "./components/NewTickerForm.vue";
 import TickerList from "./components/TickerList.vue";
 import PageLoader from "./components/PageLoader.vue";
-import { CryptoApi } from "./utils/cryptoApi";
+import { CryptoObserver } from "./utils/cryptoApi";
 import TickerPageFilter from "./components/TickerPageFilter.vue";
 import { searchParamsUtils } from "./utils/history";
 import type { TickerType } from "./types/ticker";
@@ -70,7 +70,7 @@ export default defineComponent({
       page: 1,
       pageSize: 6,
 
-      api: new CryptoApi(),
+      observer: new CryptoObserver(),
     };
   },
 
@@ -100,7 +100,7 @@ export default defineComponent({
 
     removeTicker(ticker: TickerType) {
       this.tickers = this.tickers.filter((t) => t.name !== ticker.name);
-      this.api.unsubscribeAll(ticker.name);
+      this.observer.unsubscribeAll(ticker.name);
 
       if (ticker.name === this.selectedTiker?.name) {
         this.selectedTiker = null;
@@ -140,7 +140,7 @@ export default defineComponent({
     },
 
     subscribeTicker(name: string) {
-      this.api.subscribe(name, (price) => this.updateTicker(name, price));
+      this.observer.subscribe(name, (price) => this.updateTicker(name, price));
     },
 
     changePage(newPage: number) {
@@ -216,7 +216,6 @@ export default defineComponent({
     }
 
     this.subscribeTickers();
-    this.api.startUpdate();
   },
 
   unmounted() {
