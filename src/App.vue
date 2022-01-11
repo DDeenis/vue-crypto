@@ -148,7 +148,7 @@ export default defineComponent({
     },
 
     getParamsFromSearchQuery() {
-      const searchParams = searchParamsUtils.getValues("filter", "page");
+      const searchParams = searchParamsUtils.getMultiple(["filter", "page"]);
       const savedPage = parseInt(searchParams.page || "1");
       const page =
         savedPage > 0 && savedPage * this.pageSize < this.tickers.length
@@ -225,7 +225,7 @@ export default defineComponent({
   watch: {
     urlParams: {
       handler() {
-        searchParamsUtils.setValues(this.urlParams);
+        searchParamsUtils.setMultiple(this.urlParams);
       },
       deep: true,
     },

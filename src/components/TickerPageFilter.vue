@@ -1,8 +1,7 @@
 <template>
   <div class="flex flex-col gap-2">
-    <span>Страница: {{ _page }}</span>
     <div class="flex gap-2">
-      <app-button @click="prev" :disabled="_page <= 1">Назад</app-button>
+      <app-button @click="prev" :disabled="currentPage <= 1">Назад</app-button>
       <app-button @click="next" :disabled="!hasNext">Вперед</app-button>
     </div>
     <div class="flex gap-3 items-center">
@@ -37,11 +36,11 @@ export default defineComponent({
     },
   },
   setup(props) {
-    const _page = ref(props.page || 1);
-    const _pageSize = ref(props.pageSize || 6);
+    const currentPage = ref(props.page || 1);
+    const currentPageSize = ref(props.pageSize || 6);
     return {
-      _page,
-      _pageSize,
+      currentPage,
+      currentPageSize,
     };
   },
   methods: {
@@ -51,13 +50,13 @@ export default defineComponent({
 
     next() {
       if (this.hasNext) {
-        this.$emit("next", ++this._page);
+        this.$emit("next", ++this.currentPage);
       }
     },
 
     prev() {
-      if (this._page > 1) {
-        this.$emit("previous", --this._page);
+      if (this.currentPage > 1) {
+        this.$emit("previous", --this.currentPage);
       }
     },
   },

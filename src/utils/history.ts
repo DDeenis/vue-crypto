@@ -1,44 +1,46 @@
-import type { SearchParamEntry } from "../types/history";
+import { KeyValuePair } from "../types/common";
+import { StorageManager } from "./storageManager";
 
-class SearchParamsUtils {
+class URLManager extends StorageManager<string> {
   values: Map<string, string>;
 
   constructor() {
+    super();
     this.values = new Map();
   }
 
-  setValue(key: string, value: string) {
-    this.values.set(key, value);
-    this.updateUrl();
-  }
-
-  setValues(values: SearchParamEntry[]) {
-    values.forEach((v) => this.setValue(v.key, v.value));
-  }
-
-  getValue(key: string) {
+  get(key: string): string | null {
     const url = new URLSearchParams(location.search);
     return url.get(key);
   }
 
-  getValues(...keys: string[]) {
+  getMultiple(keys: string[]): Record<string, string | null> {
     const searchParams = new Map();
 
-    keys.forEach((k) => searchParams.set(k, this.getValue(k)));
+    keys.forEach((k) => searchParams.set(k, this.get(k)));
 
     return Object.fromEntries(searchParams.entries());
   }
 
-  removeValue(key: string) {
+  set(key: string, value: string): void {
+    this.values.set(key, value);
+    this.update();
+  }
+
+  setMultiple(entries: KeyValuePair<string>[]): void {
+    entries.forEach((v) => this.set(v.key, v.value));
+  }
+
+  delete(key: string): void {
     this.values.delete(key);
-    this.updateUrl();
+    this.update();
   }
 
-  removeValues(...keys: string[]) {
-    keys.forEach((k) => this.removeValue(k));
+  deleteMultiple(keys: string[]): void {
+    keys.forEach((k) => this.delete(k));
   }
 
-  updateUrl() {
+  update(): void {
     const url = new URL(location.href);
 
     this.values.forEach((val, key) => {
@@ -54,4 +56,4 @@ class SearchParamsUtils {
   }
 }
 
-export const searchParamsUtils = new SearchParamsUtils();
+export const searchParamsUtils = new URLManager();
