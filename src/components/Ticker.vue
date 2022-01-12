@@ -1,8 +1,12 @@
 <template>
   <div
     @click="selectTicker"
-    :class="{ 'border-4': isSelected }"
-    class="bg-white overflow-hidden shadow rounded-lg border-purple-800 border-solid cursor-pointer py-2"
+    :class="{
+      'border-4': isSelected,
+      'bg-red-100': isInvalid,
+      'bg-white': !isInvalid,
+    }"
+    class="overflow-hidden shadow rounded-lg border-purple-800 border-solid cursor-pointer py-2"
   >
     <div class="px-4 py-5 sm:p-6 text-center">
       <dt class="text-sm font-medium text-gray-400 truncate uppercase">
@@ -38,6 +42,7 @@
 <script lang="ts">
 import { defineComponent, PropType } from "vue";
 import { TickerType } from "../types/ticker";
+import { INVALID_COIN } from "../utils/constanst";
 
 export default defineComponent({
   props: {
@@ -47,6 +52,7 @@ export default defineComponent({
     },
     isSelected: Boolean,
   },
+
   methods: {
     selectTicker() {
       this.$emit("select", this.ticker);
@@ -57,8 +63,8 @@ export default defineComponent({
     },
 
     formatPrice(price: number | "-") {
-      if (!price || price === "-") {
-        return price;
+      if (!price || price === "-" || price < 0) {
+        return "-";
       }
 
       const formatted =
@@ -67,6 +73,13 @@ export default defineComponent({
       return formatted;
     },
   },
+
+  computed: {
+    isInvalid() {
+      return this.ticker.price === INVALID_COIN;
+    },
+  },
+
   emits: ["select", "remove"],
 });
 </script>

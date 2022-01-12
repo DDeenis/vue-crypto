@@ -1,11 +1,10 @@
+import { createNanoEvents, Unsubscribe } from "nanoevents";
 import {
-  createNanoEvents,
-  DefaultEvents,
-  Emitter,
-  Unsubscribe,
-} from "nanoevents";
-import { SubscribeCallback } from "../types/api";
-import { API_KEY } from "./constanst";
+  ApiMessage,
+  SocketResponseTypes,
+  SubscribeCallback,
+} from "../types/api";
+import { API_KEY, INVALID_COIN } from "./constanst";
 
 export const fetchPrice = async (
   coin: string,
@@ -59,7 +58,6 @@ const emitter = createNanoEvents();
 
 export class CryptoSocket {
   socket: WebSocket;
-  AGGREGATE_INDEX = "5" as const;
   messageQueue: string[];
   subscribed: string[];
 
@@ -99,17 +97,22 @@ export class CryptoSocket {
   }
 
   initEvents() {
-    emitter.on("subscribeTicker", (coin) => this.subscribeTicker(coin));
-    emitter.on("unsubscribeTicker", (coin) => this.unsubscribeTicker(coin));
+    emitter.on(ApiMessage.SUBSCRIBE, (coin) => this.subscribeTicker(coin));
+    emitter.on(ApiMessage.UNSUBSCRIBE, (coin) => this.unsubscribeTicker(coin));
   }
 
   initSocket() {
     this.socket.onmessage = (e) => {
       const response = JSON.parse(e.data);
-      const { TYPE, FROMSYMBOL, PRICE } = response;
+      const { TYPE, FROMSYMBOL, PRICE, PARAMETER } = response;
 
-      if (TYPE === this.AGGREGATE_INDEX) {
+      if (TYPE === SocketResponseTypes.AGGREGATE_INDEX) {
         emitter.emit(`${FROMSYMBOL?.toLowerCase()}-update`, PRICE);
+      } else if (TYPE === SocketResponseTypes.INVALID_SUBSCRIBE) {
+        if (PARAMETER) {
+          const coin = response.PARAMETER.split("~")?.[2]?.toLowerCase();
+          emitter.emit(ApiMessage.INVALID_SUBSCRIBE, coin);
+        }
       }
     };
 
@@ -183,16 +186,24 @@ export class CryptoObserver {
 
   subscribe(coin: string, callback: SubscribeCallback) {
     const key = `${coin}-update`;
-    const unbind = emitter.on(key, (price) => callback(price));
-    emitter.emit("subscribeTicker", coin);
+    const unbindUpdate = emitter.on(key, (price) => callback(price));
+    const unbindError = emitter.on(
+      ApiMessage.INVALID_SUBSCRIBE,
+      (invalidCoin) => {
+        if (coin === invalidCoin) {
+          callback(INVALID_COIN);
+        }
+      }
+    );
+    emitter.emit(ApiMessage.SUBSCRIBE, coin);
 
     const unbinds = this.unbindHandlers.get(key) ?? [];
-    this.unbindHandlers.set(key, [...unbinds, unbind]);
+    this.unbindHandlers.set(key, [...unbinds, unbindUpdate, unbindError]);
   }
 
   unsubscribe(coin: string) {
     const unbinds = this.unbindHandlers.get(`${coin}-subscribe`) ?? [];
     unbinds.forEach((unbind) => unbind());
-    emitter.emit(`unsubscribeTicker`, coin);
+    emitter.emit(ApiMessage.UNSUBSCRIBE, coin);
   }
 }
