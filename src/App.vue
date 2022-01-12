@@ -100,7 +100,7 @@ export default defineComponent({
 
     removeTicker(ticker: TickerType) {
       this.tickers = this.tickers.filter((t) => t.name !== ticker.name);
-      this.observer.unsubscribeAll(ticker.name);
+      this.observer.unsubscribe(ticker.name);
 
       if (ticker.name === this.selectedTiker?.name) {
         this.selectedTiker = null;

@@ -1,3 +1,9 @@
+import {
+  createNanoEvents,
+  DefaultEvents,
+  Emitter,
+  Unsubscribe,
+} from "nanoevents";
 import { SubscribeCallback } from "../types/api";
 import { API_KEY } from "./constanst";
 
@@ -49,21 +55,22 @@ export const fetchCoinsList = async () => {
   return coinNames;
 };
 
+const emitter = createNanoEvents();
+
 export class CryptoSocket {
   socket: WebSocket;
   AGGREGATE_INDEX = "5" as const;
   messageQueue: string[];
   subscribed: string[];
-  onmessage?: (e: any) => void;
 
-  constructor(handler?: (e: MessageEvent<any>) => void) {
+  constructor() {
     this.socket = new WebSocket(
       `wss://streamer.cryptocompare.com/v2?api_key=${API_KEY}`
     );
     this.messageQueue = [];
     this.subscribed = [];
-    this.onmessage = handler;
-    this._initSocket();
+    this.initSocket();
+    this.initEvents();
   }
 
   send(msg: unknown) {
@@ -91,15 +98,21 @@ export class CryptoSocket {
     });
   }
 
-  _initSocket() {
+  initEvents() {
+    emitter.on("subscribeTicker", (coin) => this.subscribeTicker(coin));
+    emitter.on("unsubscribeTicker", (coin) => this.unsubscribeTicker(coin));
+  }
+
+  initSocket() {
     this.socket.onmessage = (e) => {
       const response = JSON.parse(e.data);
-      const { TYPE } = response;
+      const { TYPE, FROMSYMBOL, PRICE } = response;
 
       if (TYPE === this.AGGREGATE_INDEX) {
-        this.onmessage?.(response);
+        emitter.emit(`${FROMSYMBOL?.toLowerCase()}-update`, PRICE);
       }
     };
+
     this.socket.addEventListener("open", () => this.sendQueueMessages(), {
       once: true,
     });
@@ -136,44 +149,27 @@ export class CryptoSocket {
   }
 }
 
+const socket = new CryptoSocket();
+
 export class CryptoObserver {
-  api: CryptoSocket;
-  handlers: Map<string, SubscribeCallback[]>;
+  unbindHandlers: Map<string, Unsubscribe[]>;
 
   constructor() {
-    this.handlers = new Map();
-    this.api = new CryptoSocket((e) => this.update(e));
+    this.unbindHandlers = new Map();
   }
 
   subscribe(coin: string, callback: SubscribeCallback) {
-    const subscribers = this.handlers.get(coin) ?? [];
-    this.handlers.set(coin, [...subscribers, callback]);
-    this.api.subscribeTicker(coin);
+    const key = `${coin}-update`;
+    const unbind = emitter.on(key, (price) => callback(price));
+    emitter.emit("subscribeTicker", coin);
+
+    const unbinds = this.unbindHandlers.get(key) ?? [];
+    this.unbindHandlers.set(key, [...unbinds, unbind]);
   }
 
-  unsubscribe(coin: string, callback: SubscribeCallback) {
-    const subscribers = this.handlers.get(coin) ?? [];
-    this.handlers.set(
-      coin,
-      subscribers.filter((cb) => cb !== callback)
-    );
-  }
-
-  unsubscribeAll(coin: string) {
-    this.handlers.delete(coin);
-    this.api.unsubscribeTicker(coin);
-  }
-
-  async update(message: any) {
-    if (!this.handlers.size) {
-      return;
-    }
-    const { PRICE, FROMSYMBOL } = message;
-
-    this.handlers.get(FROMSYMBOL.toLowerCase())?.forEach((fn) => fn(PRICE));
-  }
-
-  stopUpdate() {
-    this.api.close();
+  unsubscribe(coin: string) {
+    const unbinds = this.unbindHandlers.get(`${coin}-subscribe`) ?? [];
+    unbinds.forEach((unbind) => unbind());
+    emitter.emit(`unsubscribeTicker`, coin);
   }
 }
