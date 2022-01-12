@@ -40,7 +40,7 @@ import Chart from "./components/Chart.vue";
 import NewTickerForm from "./components/NewTickerForm.vue";
 import TickerList from "./components/TickerList.vue";
 import PageLoader from "./components/PageLoader.vue";
-import { CryptoObserver } from "./utils/cryptoApi";
+import { CryptoApi, CryptoObserver } from "./utils/cryptoApi";
 import TickerPageFilter from "./components/TickerPageFilter.vue";
 import { searchParamsUtils } from "./utils/history";
 import type { TickerType } from "./types/ticker";
@@ -71,6 +71,7 @@ export default defineComponent({
       pageSize: 6,
 
       observer: new CryptoObserver(),
+      api: new CryptoApi(),
     };
   },
 
@@ -210,6 +211,7 @@ export default defineComponent({
   created() {
     const savedCoins = localStorage.getItem("addedCoins");
     this.getParamsFromSearchQuery();
+    this.api.connect();
 
     if (savedCoins) {
       this.tickers = JSON.parse(savedCoins);

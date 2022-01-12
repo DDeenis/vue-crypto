@@ -149,7 +149,30 @@ export class CryptoSocket {
   }
 }
 
-const socket = new CryptoSocket();
+export class CryptoApi {
+  api?: CryptoSocket;
+  connected?: boolean;
+
+  constructor(autoConnect: boolean = false) {
+    if (autoConnect) {
+      this.connect();
+    }
+  }
+
+  connect() {
+    if (!this.connected) {
+      this.api = new CryptoSocket();
+      this.connected = true;
+    }
+  }
+
+  disconnect() {
+    if (this.connected) {
+      this.api?.close();
+      this.connected = false;
+    }
+  }
+}
 
 export class CryptoObserver {
   unbindHandlers: Map<string, Unsubscribe[]>;
