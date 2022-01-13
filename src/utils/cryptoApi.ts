@@ -15,7 +15,6 @@ export const fetchPrice = async (
   const url = new URL("https://min-api.cryptocompare.com/data/price");
   url.searchParams.set("fsym", coin);
   url.searchParams.set("tsyms", currenciesStr);
-  url.searchParams.set("api_key", API_KEY);
   const link = url.toString();
 
   const response = await fetch(link);
@@ -60,6 +59,8 @@ export class CryptoSocket {
   socket: WebSocket;
   messageQueue: string[];
   subscribed: string[];
+  usdBtcRate?: number;
+  usdBtcUpdateTimeout: number = 15000;
 
   constructor() {
     this.socket = new WebSocket(
@@ -69,6 +70,8 @@ export class CryptoSocket {
     this.subscribed = [];
     this.initSocket();
     this.initEvents();
+    this.updateUsdBtcRate();
+    setInterval(() => this.updateUsdBtcRate(), this.usdBtcUpdateTimeout);
   }
 
   send(msg: unknown) {
@@ -81,19 +84,59 @@ export class CryptoSocket {
     }
   }
 
-  subscribeTicker(coin: string) {
+  subscribeTicker(coin: string, currency = "USD") {
     this.subscribed.push(coin);
     this.send({
       action: "SubAdd",
-      subs: [`5~CCCAGG~${coin.toUpperCase()}~USD`],
+      subs: [`5~CCCAGG~${coin.toUpperCase()}~${currency}`],
     });
   }
 
-  unsubscribeTicker(coin: string) {
+  unsubscribeTicker(coin: string, currency = "USD") {
+    const index = this.subscribed.indexOf(coin);
+
+    if (index !== -1) {
+      this.subscribed.splice(index, 1);
+      this.send({
+        action: "SubRemove",
+        subs: [`5~CCCAGG~${coin.toUpperCase()}~${currency}`],
+      });
+    }
+  }
+
+  subscribeToMarket(coin: string, currency = "USD", market = "Coinbase") {
+    this.subscribed.push(coin);
     this.send({
-      action: "SubRemove",
-      subs: [`5~CCCAGG~${coin.toUpperCase()}~USD`],
+      action: "SubAdd",
+      subs: [`2~${market}~${coin.toUpperCase()}~${currency}`],
     });
+  }
+
+  unsubscribeFromMarket(coin: string, currency = "USD", market = "Coinbase") {
+    const index = this.subscribed.indexOf(coin);
+
+    if (index !== -1) {
+      this.subscribed.splice(index, 1);
+      this.send({
+        action: "SubRemove",
+        subs: [`2~${market}~${coin.toUpperCase()}~${currency}`],
+      });
+    }
+  }
+
+  async hasBTCExchange(coin: string) {
+    const response = await fetchPrice(coin.toUpperCase(), ["BTC"]);
+    const responseType = response?.Type ? response.Type : 0;
+    return responseType !== 1;
+  }
+
+  async updateUsdBtcRate() {
+    const res = await fetchPrice("USD", ["BTC"]);
+    const btcRate = res?.BTC;
+
+    if (btcRate) {
+      this.usdBtcRate = btcRate;
+    }
   }
 
   initEvents() {
@@ -102,16 +145,43 @@ export class CryptoSocket {
   }
 
   initSocket() {
-    this.socket.onmessage = (e) => {
+    this.socket.onmessage = async (e) => {
       const response = JSON.parse(e.data);
-      const { TYPE, FROMSYMBOL, PRICE, PARAMETER } = response;
+      const { TYPE, FROMSYMBOL, TOSYMBOL, PRICE, PARAMETER } = response;
 
       if (TYPE === SocketResponseTypes.AGGREGATE_INDEX) {
-        emitter.emit(`${FROMSYMBOL?.toLowerCase()}-update`, PRICE);
+        let correctPrice = PRICE;
+
+        if (TOSYMBOL === "BTC" && this.usdBtcRate) {
+          correctPrice = PRICE / this.usdBtcRate;
+        }
+        console.log(
+          TYPE,
+          FROMSYMBOL,
+          TOSYMBOL,
+          PRICE,
+          correctPrice,
+          this.usdBtcRate
+        );
+
+        emitter.emit(`${FROMSYMBOL?.toLowerCase()}-update`, correctPrice);
       } else if (TYPE === SocketResponseTypes.INVALID_SUBSCRIBE) {
-        if (PARAMETER) {
-          const coin = response.PARAMETER.split("~")?.[2]?.toLowerCase();
+        /*
+        Subscribe to coin - BTC
+        Subscribe to USD - BTC
+        coin - USD = (coin - BTC) / (USD - BTC)
+        */
+        const parts = PARAMETER?.split("~")?.map((p: string) =>
+          p?.toLowerCase()
+        );
+        const coin = parts[2];
+        const tosymbol = parts[3];
+        const hasExchange = tosymbol !== "btc";
+
+        if (!hasExchange) {
           emitter.emit(ApiMessage.INVALID_SUBSCRIBE, coin);
+        } else {
+          this.subscribeTicker(coin, "BTC");
         }
       }
     };

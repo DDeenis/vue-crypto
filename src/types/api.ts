@@ -1,6 +1,7 @@
 export type SubscribeCallback = (price?: number) => void;
 
 export enum SocketResponseTypes {
+  TICKER = "2",
   AGGREGATE_INDEX = "5",
   INVALID_SUBSCRIBE = "500",
 }
