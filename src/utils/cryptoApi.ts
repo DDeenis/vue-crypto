@@ -104,26 +104,6 @@ export class CryptoSocket {
     }
   }
 
-  subscribeToMarket(coin: string, currency = "USD", market = "Coinbase") {
-    this.subscribed.push(coin);
-    this.send({
-      action: "SubAdd",
-      subs: [`2~${market}~${coin.toUpperCase()}~${currency}`],
-    });
-  }
-
-  unsubscribeFromMarket(coin: string, currency = "USD", market = "Coinbase") {
-    const index = this.subscribed.indexOf(coin);
-
-    if (index !== -1) {
-      this.subscribed.splice(index, 1);
-      this.send({
-        action: "SubRemove",
-        subs: [`2~${market}~${coin.toUpperCase()}~${currency}`],
-      });
-    }
-  }
-
   async hasBTCExchange(coin: string) {
     const response = await fetchPrice(coin.toUpperCase(), ["BTC"]);
     const responseType = response?.Type ? response.Type : 0;
@@ -147,30 +127,29 @@ export class CryptoSocket {
   initSocket() {
     this.socket.onmessage = async (e) => {
       const response = JSON.parse(e.data);
-      const { TYPE, FROMSYMBOL, TOSYMBOL, PRICE, PARAMETER } = response;
+      const { TYPE, FROMSYMBOL, TOSYMBOL, PRICE, PARAMETER, FLAGS } = response;
 
       if (TYPE === SocketResponseTypes.AGGREGATE_INDEX) {
+        if (FLAGS && FLAGS === 4) {
+          return;
+        }
+
         let correctPrice = PRICE;
 
         if (TOSYMBOL === "BTC" && this.usdBtcRate) {
           correctPrice = PRICE / this.usdBtcRate;
         }
-        console.log(
-          TYPE,
-          FROMSYMBOL,
-          TOSYMBOL,
-          PRICE,
-          correctPrice,
-          this.usdBtcRate
-        );
+        // console.log(
+        //   TYPE,
+        //   FROMSYMBOL,
+        //   TOSYMBOL,
+        //   PRICE,
+        //   correctPrice,
+        //   this.usdBtcRate
+        // );
 
         emitter.emit(`${FROMSYMBOL?.toLowerCase()}-update`, correctPrice);
       } else if (TYPE === SocketResponseTypes.INVALID_SUBSCRIBE) {
-        /*
-        Subscribe to coin - BTC
-        Subscribe to USD - BTC
-        coin - USD = (coin - BTC) / (USD - BTC)
-        */
         const parts = PARAMETER?.split("~")?.map((p: string) =>
           p?.toLowerCase()
         );
