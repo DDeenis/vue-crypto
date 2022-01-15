@@ -45,6 +45,8 @@ import TickerPageFilter from "./components/TickerPageFilter.vue";
 import { searchParamsUtils } from "./utils/history";
 import type { TickerType } from "./types/ticker";
 import type { SearchParamEntry } from "./types/history";
+import { localStorageManager } from "./utils/localStorage";
+import { BROADCAST_UPDATE_LIST } from "./utils/constanst";
 
 export default defineComponent({
   components: {
@@ -72,6 +74,7 @@ export default defineComponent({
 
       observer: new CryptoObserver(),
       api: new CryptoApi(),
+      broadcast: new BroadcastChannel(BROADCAST_UPDATE_LIST),
     };
   },
 
@@ -159,6 +162,14 @@ export default defineComponent({
       this.filter = searchParams.filter || "";
       this.page = page;
     },
+
+    getTickersFromLocalStorage() {
+      const savedCoins = localStorageManager.get("addedCoins");
+      const tickers: TickerType[] | undefined =
+        savedCoins && JSON.parse(savedCoins);
+
+      return tickers ?? [];
+    },
   },
 
   computed: {
@@ -209,15 +220,18 @@ export default defineComponent({
   },
 
   created() {
-    const savedCoins = localStorage.getItem("addedCoins");
     this.getParamsFromSearchQuery();
     this.api.connect();
-
-    if (savedCoins) {
-      this.tickers = JSON.parse(savedCoins);
-    }
-
+    this.tickers = this.getTickersFromLocalStorage();
     this.subscribeTickers();
+
+    this.broadcast.addEventListener("message", (ev) => {
+      const { event } = JSON.parse(ev.data);
+
+      if (event === "ticketsListChanged") {
+        this.tickers = this.getTickersFromLocalStorage();
+      }
+    });
   },
 
   unmounted() {
@@ -244,7 +258,13 @@ export default defineComponent({
 
     tickers: {
       handler() {
-        localStorage.setItem("addedCoins", JSON.stringify(this.tickers));
+        localStorageManager.set("addedCoins", JSON.stringify(this.tickers));
+
+        this.broadcast.postMessage(
+          JSON.stringify({
+            event: "ticketsListChanged",
+          })
+        );
       },
       deep: true,
     },

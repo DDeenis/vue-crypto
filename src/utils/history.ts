@@ -1,11 +1,10 @@
 import { KeyValuePair } from "../types/common";
-import { StorageManager } from "./storageManager";
+import { IStorageManager } from "./storageManager";
 
-class URLManager extends StorageManager<string> {
+class URLManager implements IStorageManager<string> {
   values: Map<string, string>;
 
   constructor() {
-    super();
     this.values = new Map();
   }
 

@@ -1,20 +1,12 @@
 import { KeyValuePair } from "../types/common";
 
-export abstract class StorageManager<T> {
-  constructor(entries?: KeyValuePair<T>[]) {
-    if (entries) {
-      this.setMultiple(entries);
-    }
-  }
+export interface IStorageManager<T> {
+  get(key: string): T | null;
+  getMultiple(keys: string[]): Record<string, T | null>;
 
-  abstract get(key: string): T | null;
-  abstract getMultiple(keys: string[]): Record<string, T | null>;
+  set(key: string, value: T): void;
+  setMultiple(entries: KeyValuePair<T>[]): void;
 
-  abstract set(key: string, value: T): void;
-  abstract setMultiple(entries: KeyValuePair<T>[]): void;
-
-  abstract delete(key: string): void;
-  abstract deleteMultiple(keys: string[]): void;
-
-  abstract update(): void;
+  delete(key: string): void;
+  deleteMultiple(keys: string[]): void;
 }

@@ -3,8 +3,9 @@ import {
   ApiMessage,
   SocketResponseTypes,
   SubscribeCallback,
+  SubscribedTicker,
 } from "../types/api";
-import { API_KEY, BROADCAST_CHANNEL_KEY, INVALID_COIN } from "./constanst";
+import { API_KEY, BROADCAST_UPDATE_PRICE, INVALID_COIN } from "./constanst";
 
 export const fetchPrice = async (
   coin: string,
@@ -59,7 +60,7 @@ export class CryptoSocket {
   socket: WebSocket;
   broadcast: BroadcastChannel;
   messageQueue: string[];
-  subscribed: string[];
+  subscribed: SubscribedTicker[];
   usdBtcRate?: number;
   usdBtcUpdateTimeout: number = 15000;
 
@@ -67,7 +68,7 @@ export class CryptoSocket {
     this.socket = new WebSocket(
       `wss://streamer.cryptocompare.com/v2?api_key=${API_KEY}`
     );
-    this.broadcast = new BroadcastChannel(BROADCAST_CHANNEL_KEY);
+    this.broadcast = new BroadcastChannel(BROADCAST_UPDATE_PRICE);
     this.messageQueue = [];
     this.subscribed = [];
     this.initSocket();
@@ -87,7 +88,10 @@ export class CryptoSocket {
   }
 
   subscribeTicker(coin: string, currency = "USD") {
-    this.subscribed.push(coin);
+    this.subscribed.push({
+      from: coin,
+      to: currency,
+    });
     this.send({
       action: "SubAdd",
       subs: [`5~CCCAGG~${coin.toUpperCase()}~${currency}`],
@@ -95,15 +99,12 @@ export class CryptoSocket {
   }
 
   unsubscribeTicker(coin: string, currency = "USD") {
-    const index = this.subscribed.indexOf(coin);
+    this.subscribed.filter((s) => s.from !== coin);
 
-    if (index !== -1) {
-      this.subscribed.splice(index, 1);
-      this.send({
-        action: "SubRemove",
-        subs: [`5~CCCAGG~${coin.toUpperCase()}~${currency}`],
-      });
-    }
+    this.send({
+      action: "SubRemove",
+      subs: [`5~CCCAGG~${coin.toUpperCase()}~${currency}`],
+    });
   }
 
   async updateUsdBtcRate() {
@@ -118,56 +119,68 @@ export class CryptoSocket {
   initEvents() {
     emitter.on(ApiMessage.SUBSCRIBE, (coin) => this.subscribeTicker(coin));
     emitter.on(ApiMessage.UNSUBSCRIBE, (coin) => this.unsubscribeTicker(coin));
+
+    this.broadcast.addEventListener("message", (ev) => {
+      const { event, coin } = JSON.parse(ev.data);
+
+      if (event === ApiMessage.SUBSCRIBE) {
+        this.subscribeTicker(coin);
+      } else if (event === ApiMessage.UNSUBSCRIBE) {
+        this.unsubscribeTicker(coin);
+      }
+    });
   }
 
   initSocket() {
-    this.socket.onmessage = async (e) => {
-      const response = JSON.parse(e.data);
-      const { TYPE, FROMSYMBOL, TOSYMBOL, PRICE, PARAMETER, FLAGS } = response;
-
-      if (TYPE === SocketResponseTypes.AGGREGATE_INDEX) {
-        if (FLAGS && FLAGS === 4) {
-          return;
-        }
-
-        let correctPrice = PRICE;
-
-        if (TOSYMBOL === "BTC" && this.usdBtcRate) {
-          correctPrice = PRICE / this.usdBtcRate;
-        }
-
-        // emitter.emit(`${FROMSYMBOL?.toLowerCase()}-update`, correctPrice);
-        this.broadcast.postMessage(
-          JSON.stringify({
-            to: TOSYMBOL,
-            from: FROMSYMBOL,
-            price: correctPrice,
-          })
-        );
-      } else if (TYPE === SocketResponseTypes.INVALID_SUBSCRIBE) {
-        const parts = PARAMETER?.split("~")?.map((p: string) =>
-          p?.toLowerCase()
-        );
-        const coin = parts[2];
-        const tosymbol = parts[3];
-        const hasExchange = tosymbol !== "btc";
-
-        if (!hasExchange) {
-          emitter.emit(ApiMessage.INVALID_SUBSCRIBE, coin);
-        } else {
-          this.subscribeTicker(coin, "BTC");
-        }
-      }
-    };
-
+    this.socket.onmessage = (e) => this.onSocketMessage(e);
     this.socket.addEventListener("open", () => this.sendQueueMessages(), {
       once: true,
     });
   }
 
+  async onSocketMessage(e: MessageEvent<any>) {
+    const response = JSON.parse(e.data);
+    const { TYPE, FROMSYMBOL, TOSYMBOL, PRICE, PARAMETER, FLAGS } = response;
+
+    if (TYPE === SocketResponseTypes.AGGREGATE_INDEX) {
+      if (!PRICE) {
+        return;
+      }
+
+      let correctPrice = PRICE;
+      const key = `${FROMSYMBOL?.toLowerCase()}-update`;
+
+      if (TOSYMBOL === "BTC" && this.usdBtcRate) {
+        correctPrice = PRICE / this.usdBtcRate;
+      }
+
+      this.broadcast.postMessage(
+        JSON.stringify({
+          event: key,
+          price: correctPrice,
+        })
+      );
+    } else if (TYPE === SocketResponseTypes.INVALID_SUBSCRIBE) {
+      const parts = PARAMETER?.split("~")?.map((p: string) => p?.toLowerCase());
+      const coin = parts[2];
+      const tosymbol = parts[3];
+      const hasExchange = tosymbol !== "btc";
+
+      if (!hasExchange) {
+        this.broadcast.postMessage(
+          JSON.stringify({
+            event: `invalid-${coin}`,
+          })
+        );
+      } else {
+        this.subscribeTicker(coin, "BTC");
+      }
+    }
+  }
+
   close() {
     const unsubCoins = this.subscribed.map(
-      (c) => `5~CCCAGG~${c.toUpperCase()}~USD`
+      (c) => `5~CCCAGG~${c.from.toUpperCase()}~${c.to.toUpperCase()}`
     );
 
     this.send({
@@ -223,24 +236,29 @@ export class CryptoApi {
 
 export class CryptoObserver {
   unbindHandlers: Map<string, Unsubscribe[]>;
+  broadcastHandlers: Map<string, ((e: MessageEvent<any>) => void)[]>;
   broadcast: BroadcastChannel;
 
   constructor() {
     this.unbindHandlers = new Map();
-    this.broadcast = new BroadcastChannel(BROADCAST_CHANNEL_KEY);
+    this.broadcastHandlers = new Map();
+    this.broadcast = new BroadcastChannel(BROADCAST_UPDATE_PRICE);
   }
 
   subscribe(coin: string, callback: SubscribeCallback) {
     const key = `${coin}-update`;
 
-    this.broadcast.addEventListener("message", (e) => {
+    const broadcastFn = (e: MessageEvent<any>) => {
       const msg = JSON.parse(e.data);
-      if (coin == msg.from?.toLowerCase()) {
-        callback(msg.price);
-      }
-    });
 
-    const unbindUpdate = emitter.on(key, (price) => callback(price));
+      if (msg.event === key) {
+        callback(msg.price);
+      } else if (msg.event === `invalid-${coin}`) {
+        callback(INVALID_COIN);
+      }
+    };
+    this.broadcast.addEventListener("message", broadcastFn);
+
     const unbindError = emitter.on(
       ApiMessage.INVALID_SUBSCRIBE,
       (invalidCoin) => {
@@ -251,13 +269,20 @@ export class CryptoObserver {
     );
     emitter.emit(ApiMessage.SUBSCRIBE, coin);
 
+    const handers = this.broadcastHandlers.get(coin) ?? [];
+    this.broadcastHandlers.set(coin, [...handers, broadcastFn]);
+
     const unbinds = this.unbindHandlers.get(key) ?? [];
-    this.unbindHandlers.set(key, [...unbinds, unbindUpdate, unbindError]);
+    this.unbindHandlers.set(key, [...unbinds, unbindError]);
   }
 
   unsubscribe(coin: string) {
     const unbinds = this.unbindHandlers.get(`${coin}-subscribe`) ?? [];
     unbinds.forEach((unbind) => unbind());
+
+    const handers = this.broadcastHandlers.get(coin) ?? [];
+    handers.forEach((fn) => this.broadcast.removeEventListener("message", fn));
+
     emitter.emit(ApiMessage.UNSUBSCRIBE, coin);
   }
 }

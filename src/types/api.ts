@@ -11,3 +11,8 @@ export enum ApiMessage {
   UNSUBSCRIBE = "unsubscribeTicker",
   INVALID_SUBSCRIBE = "invaidSubscribe",
 }
+
+export interface SubscribedTicker {
+  from: string;
+  to: string;
+}
