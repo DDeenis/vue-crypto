@@ -3,9 +3,13 @@
     <h3 class="text-lg leading-6 font-medium text-gray-900 my-8 uppercase">
       {{ cryptocurrencyName }} - USD
     </h3>
-    <div class="flex items-end border-gray-600 border-b border-l h-64">
+    <div
+      class="flex items-end border-gray-600 border-b border-l h-64"
+      ref="chartElement"
+    >
       <div
-        v-for="(price, i) in graph"
+        v-for="(price, i) in slicedGraph"
+        ref="chartBar"
         :key="i"
         :style="{ height: `${price}%` }"
         class="bg-purple-800 border w-full max-w-[2.5rem]"
@@ -51,11 +55,46 @@ export default defineComponent({
       required: true,
     },
   },
+
+  data() {
+    return { maxElements: 1 };
+  },
+
   methods: {
     closeChart() {
       this.$emit("close");
     },
+
+    calcMaxElements() {
+      const chart = this.$refs.chartElement as HTMLDivElement | undefined;
+      const bars = this.$refs.chartBar as HTMLDivElement[] | undefined;
+      const bar = bars?.[0];
+
+      if (!chart) {
+        return;
+      }
+
+      const barSize = Number(bar?.style.width) || 38;
+      this.maxElements = chart.clientWidth / barSize;
+    },
   },
+
+  computed: {
+    slicedGraph() {
+      // const length = this.graph.length;
+      return this.graph.slice(-this.maxElements);
+    },
+  },
+
+  mounted() {
+    this.calcMaxElements();
+    window.addEventListener("resize", this.calcMaxElements);
+  },
+
+  beforeUnmount() {
+    window.removeEventListener("resize", this.calcMaxElements);
+  },
+
   emits: ["close"],
 });
 </script>

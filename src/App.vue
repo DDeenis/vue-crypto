@@ -66,7 +66,6 @@ export default defineComponent({
 
       isError: false,
       graph: [] as number[],
-      updateCoinsInterval: 0,
 
       filter: "",
       page: 1,
@@ -235,7 +234,7 @@ export default defineComponent({
   },
 
   unmounted() {
-    clearInterval(this.updateCoinsInterval);
+    this.api.disconnect();
   },
 
   watch: {
