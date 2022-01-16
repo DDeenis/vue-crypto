@@ -57,7 +57,7 @@ export default defineComponent({
   },
 
   data() {
-    return { maxElements: 1 };
+    return { maxElements: 1, barSize: 0 };
   },
 
   methods: {
@@ -67,27 +67,34 @@ export default defineComponent({
 
     calcMaxElements() {
       const chart = this.$refs.chartElement as HTMLDivElement | undefined;
-      const bars = this.$refs.chartBar as HTMLDivElement[] | undefined;
-      const bar = bars?.[0];
 
-      if (!chart) {
+      if (!chart || !this.barSize) {
         return;
       }
 
-      const barSize = Number(bar?.style.width) || 38;
-      this.maxElements = chart.clientWidth / barSize;
+      this.maxElements = Math.floor(chart.clientWidth / this.barSize);
     },
   },
 
   computed: {
     slicedGraph() {
-      // const length = this.graph.length;
       return this.graph.slice(-this.maxElements);
     },
   },
 
+  watch: {
+    graph() {
+      if (!this.barSize && this.$refs.chartBar) {
+        const bars = this.$refs.chartBar as HTMLDivElement[] | undefined;
+        const bar = bars?.[0];
+        this.barSize = Number(bar?.offsetWidth);
+
+        this.calcMaxElements();
+      }
+    },
+  },
+
   mounted() {
-    this.calcMaxElements();
     window.addEventListener("resize", this.calcMaxElements);
   },
 
