@@ -11,8 +11,7 @@
         type="text"
         placeholder="Название валюты"
         class="max-w-xs"
-        :value="modelValue"
-        @input="changeModel"
+        v-model="filter"
       />
     </div>
   </div>
@@ -25,9 +24,10 @@ import AppInput from "./common/AppInput.vue";
 
 export default defineComponent({
   components: { AppButton, AppInput },
-  emits: ["previous", "next", "update:modelValue"],
+
+  emits: ["previous", "next", "changeFilter"],
+
   props: {
-    modelValue: String,
     page: Number,
     pageSize: Number,
     hasNext: {
@@ -35,6 +35,13 @@ export default defineComponent({
       required: true,
     },
   },
+
+  data() {
+    return {
+      filter: "",
+    };
+  },
+
   setup(props) {
     const currentPage = ref(props.page || 1);
     const currentPageSize = ref(props.pageSize || 6);
@@ -43,9 +50,10 @@ export default defineComponent({
       currentPageSize,
     };
   },
+
   methods: {
-    changeModel(event: Event) {
-      this.$emit("update:modelValue", (event.target as HTMLInputElement).value);
+    changeFilter() {
+      this.$emit("changeFilter", this.filter);
     },
 
     next() {
@@ -58,6 +66,12 @@ export default defineComponent({
       if (this.currentPage > 1) {
         this.$emit("previous", --this.currentPage);
       }
+    },
+  },
+
+  watch: {
+    filter() {
+      this.changeFilter();
     },
   },
 });

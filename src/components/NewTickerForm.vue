@@ -2,24 +2,20 @@
   <section>
     <div class="flex">
       <div class="max-w-xs">
-        <label for="wallet" class="block text-sm font-medium text-gray-700"
-          >Тикер</label
-        >
+        <label for="wallet" class="block text-sm font-medium text-gray-700">
+          Тикер
+        </label>
         <div class="mt-1 relative rounded-md shadow-md">
           <app-input
             @keydown.enter="create"
-            :value="modelValue"
-            @input="changeModel"
+            v-model="tickerName"
             type="text"
             name="wallet"
             id="wallet"
             placeholder="Например DOGE"
           />
         </div>
-        <ticker-hints
-          :tickerInput="modelValue ?? ''"
-          @selectHint="selectHint"
-        />
+        <ticker-hints :tickerInput="tickerName" @selectHint="selectHint" />
         <div v-if="isError" class="text-sm text-red-600">
           Такой тикер уже добавлен
         </div>
@@ -51,24 +47,25 @@ import AppInput from "./common/AppInput.vue";
 
 export default defineComponent({
   props: {
-    modelValue: String,
     isError: Boolean,
   },
+
+  data() {
+    return { tickerName: "" };
+  },
+
   methods: {
     create() {
-      this.$emit("create", this.modelValue);
-    },
-
-    changeModel(event: Event) {
-      this.$emit("update:modelValue", (event.target as HTMLInputElement).value);
-      this.$emit("input");
+      this.$emit("create", this.tickerName);
+      this.tickerName = "";
     },
 
     selectHint(hint: string) {
       this.$emit("create", hint);
+      this.tickerName = "";
     },
   },
-  emits: ["update:modelValue", "create", "input"],
+  emits: ["create", "input"],
   components: { TickerHints, AppButton, AppInput },
 });
 </script>

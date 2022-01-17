@@ -3,7 +3,6 @@
     <page-loader :visible="false" />
     <div class="container">
       <new-ticker-form
-        v-model="ticker"
         :isError="isError"
         @create="addTicker"
         @input="isError = false"
@@ -11,12 +10,12 @@
       <hr v-if="tickers.length" class="w-full border-t border-gray-500 my-4" />
       <ticker-page-filter
         v-if="tickers.length"
-        v-model="filter"
         :page="page"
         :pageSize="pageSize"
         :hasNext="hasNextPage"
         @next="changePage"
         @previous="changePage"
+        @change-filter="changeFilter"
       />
       <ticker-list
         v-if="pagedTickers.length"
@@ -60,7 +59,6 @@ export default defineComponent({
 
   data() {
     return {
-      ticker: "",
       tickers: [] as TickerType[],
       selectedTiker: null as TickerType | null,
 
@@ -95,7 +93,6 @@ export default defineComponent({
 
       this.isError = false;
       this.tickers.push(currentTicker);
-      this.ticker = "";
       this.filter = "";
 
       this.subscribeTicker(currentTicker.name);
@@ -168,6 +165,10 @@ export default defineComponent({
         savedCoins && JSON.parse(savedCoins);
 
       return tickers ?? [];
+    },
+
+    changeFilter(newVal: string) {
+      this.filter = newVal;
     },
   },
 
