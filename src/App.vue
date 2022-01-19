@@ -25,7 +25,7 @@
       />
       <chart
         v-if="selectedTiker"
-        :cryptocurrencyName="selectedTiker?.name"
+        :coinName="selectedTiker?.name"
         :graph="normalizedGraph"
         @close="closeChart"
       />
