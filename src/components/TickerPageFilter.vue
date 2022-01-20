@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col gap-2">
-    <div class="flex gap-2">
+    <div class="flex gap-2 my-4">
       <app-button @click="prev" :disabled="currentPage <= 1">Назад</app-button>
       <app-button @click="next" :disabled="!hasNext">Вперед</app-button>
     </div>

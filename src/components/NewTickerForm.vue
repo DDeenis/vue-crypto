@@ -21,7 +21,7 @@
         </div>
       </div>
     </div>
-    <app-button @click="create" type="button">
+    <app-button class="my-4" @click="create" type="button">
       <svg
         class="-ml-0.5 mr-2 h-6 w-6"
         xmlns="http://www.w3.org/2000/svg"
