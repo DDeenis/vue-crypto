@@ -52,7 +52,6 @@ export default defineComponent({
 
     removeTicker(ticker: TickerType) {
       this.$emit("remove", ticker);
-      console.log("remove", ticker);
       this.closeModal();
     },
 

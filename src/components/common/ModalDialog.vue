@@ -1,7 +1,12 @@
 <template>
   <teleport to="#app">
     <div
-      :class="{ 'opacity-0': !open, 'opacity-100': open, 'z-10': open }"
+      :class="{
+        'opacity-0': !open,
+        'opacity-100': open,
+        'z-10': open,
+        '-z-10': !open,
+      }"
       class="bg-black/60 fixed inset-0 flex justify-center items-center transition-opacity px-2 md:px-0"
     >
       <div
@@ -43,6 +48,10 @@ export default defineComponent({
   methods: {
     requestClose() {
       this.$emit("close");
+    },
+
+    onClose() {
+      console.log("modal closed");
     },
   },
 });
