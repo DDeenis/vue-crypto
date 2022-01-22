@@ -1,25 +1,22 @@
 <template>
   <modal-dialog :open="open" @close="requestClose">
-    <template #modal-content>
-      <p>Are you sure you want to remove {{ coin.toUpperCase() }} ticker?</p>
-      <p>
-        Type <b>{{ coin.toUpperCase() }}</b> to remove.
-      </p>
-    </template>
-    <template #modal-bottom>
-      <div class="flex gap-3">
-        <app-input
-          type="text"
-          :placeholder="coin.toUpperCase()"
-          v-model="value"
-          @keydown.enter="confirmAction"
-        />
-        <app-button :disabled="isDisabled" @click="confirmAction">
-          Confirm
-        </app-button>
-        <app-button @click="requestClose">Cancel</app-button>
-      </div>
-    </template>
+    <p>Are you sure you want to remove {{ coin.toUpperCase() }} ticker?</p>
+    <p>
+      Type <b>{{ coin.toUpperCase() }}</b> to remove.
+    </p>
+    <hr class="border-[1px] border-gray-200 my-4" />
+    <div class="flex gap-3">
+      <app-input
+        type="text"
+        :placeholder="coin.toUpperCase()"
+        v-model="value"
+        @keydown.enter="confirmAction"
+      />
+      <app-button :disabled="isDisabled" @click="confirmAction">
+        Confirm
+      </app-button>
+      <app-button @click="requestClose">Cancel</app-button>
+    </div>
   </modal-dialog>
 </template>
 
@@ -57,10 +54,12 @@ export default defineComponent({
   methods: {
     requestClose() {
       this.$emit("close");
+      this.value = "";
     },
 
     confirmAction() {
       this.$emit("confirm");
+      this.value = "";
     },
   },
 

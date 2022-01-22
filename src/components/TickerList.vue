@@ -62,7 +62,7 @@ export default defineComponent({
   },
 
   emits: {
-    remove: (val: any) => val instanceof String,
+    remove: (val: any) => val instanceof Object,
     select: (val: any) => val instanceof String,
   },
 

@@ -8,19 +8,19 @@
         '-z-10': !open,
       }"
       class="bg-black/60 fixed inset-0 flex justify-center items-center transition-opacity px-2 md:px-0"
+      @click="requestClose"
     >
       <div
         :class="{ 'scale-0': !open, 'scale-100': open }"
         class="bg-white rounded-md py-3 px-4 w-full max-w-xl flex flex-col justify-between transition-transform"
+        @click.stop
       >
         <button
           type="button"
           @click="requestClose"
           class="close-button absolute right-2 top-2 w-4 h-4"
         />
-        <slot name="modal-content" />
-        <hr class="border-[1px] border-gray-200 my-4" />
-        <slot name="modal-bottom" />
+        <slot />
       </div>
     </div>
   </teleport>
@@ -53,6 +53,20 @@ export default defineComponent({
     onClose() {
       console.log("modal closed");
     },
+
+    onEscape(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        this.requestClose();
+      }
+    },
+  },
+
+  mounted() {
+    window.addEventListener("keydown", this.onEscape);
+  },
+
+  beforeUnmount() {
+    window.removeEventListener("keydown", this.onEscape);
   },
 });
 </script>
