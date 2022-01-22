@@ -1,22 +1,24 @@
 <template>
   <modal-dialog :open="open" @close="requestClose">
-    <form @submit.prevent="confirmAction">
-      <p>Are you sure you want to remove {{ coin.toUpperCase() }} ticker?</p>
-      <p>
-        Type <b>{{ coin.toUpperCase() }}</b> to remove.
-      </p>
-      <hr class="border-[1px] border-gray-200 my-4" />
-      <div class="flex gap-3">
-        <app-input
-          type="text"
-          :placeholder="coin.toUpperCase()"
-          v-model="value"
-          @keydown.enter="confirmAction"
-        />
-        <app-button type="submit" :disabled="isDisabled">Confirm</app-button>
-        <app-button type="button" @click="requestClose">Cancel</app-button>
-      </div>
-    </form>
+    <template v-slot="{ close }">
+      <form @submit.prevent="confirmAction">
+        <p>Are you sure you want to remove {{ coin.toUpperCase() }} ticker?</p>
+        <p>
+          Type <b>{{ coin.toUpperCase() }}</b> to remove.
+        </p>
+        <hr class="border-[1px] border-gray-200 my-4" />
+        <div class="flex gap-3">
+          <app-input
+            type="text"
+            :placeholder="coin.toUpperCase()"
+            v-model="value"
+            @keydown.enter="confirmAction"
+          />
+          <app-button type="submit" :disabled="isDisabled">Confirm</app-button>
+          <app-button type="button" @click="close">Cancel</app-button>
+        </div>
+      </form>
+    </template>
   </modal-dialog>
 </template>
 
