@@ -20,7 +20,7 @@
           @click="requestClose"
           class="close-button absolute right-2 top-2 w-4 h-4"
         />
-        <slot />
+        <slot :close="requestClose" />
       </div>
     </div>
   </teleport>
@@ -50,12 +50,8 @@ export default defineComponent({
       this.$emit("close");
     },
 
-    onClose() {
-      console.log("modal closed");
-    },
-
     onEscape(e: KeyboardEvent) {
-      if (e.key === "Escape") {
+      if (this.open && e.key === "Escape") {
         this.requestClose();
       }
     },
