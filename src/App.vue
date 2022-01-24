@@ -73,6 +73,25 @@ export default defineComponent({
     };
   },
 
+  mounted() {
+    this.api.connect();
+    this.tickers = this.getTickersFromLocalStorage();
+    this.getParamsFromSearchQuery();
+    this.subscribeTickers();
+
+    this.broadcast.addEventListener("message", (ev) => {
+      const { event } = JSON.parse(ev.data);
+
+      if (event === "ticketsListChanged") {
+        this.tickers = this.getTickersFromLocalStorage();
+      }
+    });
+  },
+
+  unmounted() {
+    this.api.disconnect();
+  },
+
   methods: {
     addTicker(tickerName: string) {
       const currentTicker: TickerType = {
@@ -149,7 +168,7 @@ export default defineComponent({
       const searchParams = searchParamsUtils.getMultiple(["filter", "page"]);
       const savedPage = parseInt(searchParams.page || "1");
       const page =
-        savedPage > 0 && savedPage * this.pageSize < this.tickers.length
+        savedPage > 0 && savedPage * this.pageSize > this.tickers.length
           ? savedPage
           : 1;
 
@@ -211,25 +230,6 @@ export default defineComponent({
         },
       ];
     },
-  },
-
-  created() {
-    this.getParamsFromSearchQuery();
-    this.api.connect();
-    this.tickers = this.getTickersFromLocalStorage();
-    this.subscribeTickers();
-
-    this.broadcast.addEventListener("message", (ev) => {
-      const { event } = JSON.parse(ev.data);
-
-      if (event === "ticketsListChanged") {
-        this.tickers = this.getTickersFromLocalStorage();
-      }
-    });
-  },
-
-  unmounted() {
-    this.api.disconnect();
   },
 
   watch: {

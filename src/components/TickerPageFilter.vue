@@ -26,8 +26,6 @@ export default defineComponent({
   components: { AppButton, AppInput },
 
   emits: {
-    previous: (val: any) => Number.isInteger(val),
-    next: (val: any) => Number.isInteger(val),
     "update:filter": (val: any) => typeof val === "string",
     "update:page": (val: any) => Number.isInteger(val),
   },
