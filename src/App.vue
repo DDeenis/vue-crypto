@@ -10,12 +10,10 @@
       <hr v-if="tickers.length" class="w-full border-t border-gray-500 my-4" />
       <ticker-page-filter
         v-if="tickers.length"
-        :page="page"
+        v-model:page="page"
+        v-model:filter="filter"
         :pageSize="pageSize"
         :hasNext="hasNextPage"
-        @next="changePage"
-        @previous="changePage"
-        @change-filter="changeFilter"
       />
       <ticker-list
         v-if="pagedTickers.length"
@@ -165,10 +163,6 @@ export default defineComponent({
         savedCoins && JSON.parse(savedCoins);
 
       return tickers ?? [];
-    },
-
-    changeFilter(newVal: string) {
-      this.filter = newVal;
     },
   },
 

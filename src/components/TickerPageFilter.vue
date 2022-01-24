@@ -11,7 +11,7 @@
         type="text"
         placeholder="Название валюты"
         class="max-w-xs"
-        v-model="filter"
+        v-model="filterValue"
       />
     </div>
   </div>
@@ -25,7 +25,12 @@ import AppInput from "./common/AppInput.vue";
 export default defineComponent({
   components: { AppButton, AppInput },
 
-  emits: ["previous", "next", "changeFilter"],
+  emits: {
+    previous: (val: any) => Number.isInteger(val),
+    next: (val: any) => Number.isInteger(val),
+    "update:filter": (val: any) => typeof val === "string",
+    "update:page": (val: any) => Number.isInteger(val),
+  },
 
   props: {
     page: Number,
@@ -34,12 +39,20 @@ export default defineComponent({
       type: Boolean,
       required: true,
     },
+    filter: {
+      type: String,
+      required: true,
+    },
   },
 
   data() {
     return {
-      filter: "",
+      filterValue: "",
     };
+  },
+
+  created() {
+    this.filterValue = this.filter;
   },
 
   setup(props) {
@@ -53,24 +66,24 @@ export default defineComponent({
 
   methods: {
     changeFilter() {
-      this.$emit("changeFilter", this.filter);
+      this.$emit("update:filter", this.filterValue);
     },
 
     next() {
       if (this.hasNext) {
-        this.$emit("next", ++this.currentPage);
+        this.$emit("update:page", ++this.currentPage);
       }
     },
 
     prev() {
       if (this.currentPage > 1) {
-        this.$emit("previous", --this.currentPage);
+        this.$emit("update:page", --this.currentPage);
       }
     },
   },
 
   watch: {
-    filter() {
+    filterValue() {
       this.changeFilter();
     },
   },
