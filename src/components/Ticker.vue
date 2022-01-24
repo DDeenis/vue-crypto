@@ -80,6 +80,9 @@ export default defineComponent({
     },
   },
 
-  emits: ["select", "remove"],
+  emits: {
+    select: (val: any) => val instanceof Object,
+    remove: (val: any) => val instanceof Object,
+  },
 });
 </script>

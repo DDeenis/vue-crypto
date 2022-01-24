@@ -50,7 +50,9 @@ export default defineComponent({
     },
   },
 
-  emits: ["selectHint"],
+  emits: {
+    selectHint: (val: any) => typeof val === "string",
+  },
 
   async created() {
     const savedNames = localStorage.getItem("coinNames");

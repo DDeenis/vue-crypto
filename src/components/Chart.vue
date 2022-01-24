@@ -102,6 +102,8 @@ export default defineComponent({
     window.removeEventListener("resize", this.calcMaxElements);
   },
 
-  emits: ["close"],
+  emits: {
+    close: null,
+  },
 });
 </script>

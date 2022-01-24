@@ -46,6 +46,8 @@ import AppButton from "./common/AppButton.vue";
 import AppInput from "./common/AppInput.vue";
 
 export default defineComponent({
+  components: { TickerHints, AppButton, AppInput },
+
   props: {
     isError: Boolean,
   },
@@ -65,7 +67,9 @@ export default defineComponent({
       this.tickerName = "";
     },
   },
-  emits: ["create", "input"],
-  components: { TickerHints, AppButton, AppInput },
+
+  emits: {
+    create: (val: any) => typeof val === "string",
+  },
 });
 </script>
